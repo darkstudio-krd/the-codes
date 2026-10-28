@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facility Epsilon: Containment Breach</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+        body {
+            background-color: #020204;
+            color: #e2e8f0;
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .horror-title {
+            font-family: 'Creepster', cursive;
+            text-shadow: 0 0 15px #dc2626, 0 0 30px #7f1d1d, 0 0 50px #000;
+        }
+
+        .tech-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.45) 50%,
+                rgba(0, 0, 0, 0.45)
+            );
+            background-size: 100% 4px;
+        }
+
+        .vignette {
+            box-shadow: inset 0 0 140px rgba(0,0,0,0.98);
+        }
+
+        .heartbeat-pulse {
+            animation: pulse-danger 0.7s infinite ease-in-out;
+        }
+
+        @keyframes pulse-danger {
+            0%, 100% { box-shadow: inset 0 0 50px rgba(220, 38, 38, 0.15); }
+            50% { box-shadow: inset 0 0 150px rgba(220, 38, 38, 0.6); }
+        }
+
+        .hud-glass {
+            background: rgba(8, 11, 19, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(220, 38, 38, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(220, 38, 38, 0.1);
+        }
+
+        .hud-glass-emerald {
+            background: rgba(6, 18, 14, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(16, 185, 129, 0.15);
+        }
+
+        @keyframes float-glow {
+            0%, 100% { transform: translateY(0px); filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.6)); }
+            50% { transform: translateY(-4px); filter: drop-shadow(0 0 16px rgba(250, 204, 21, 0.9)); }
+        }
+
+        .glow-item {
+            animation: float-glow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen bg-black overflow-hidden select-none">
+
+    <!-- MAIN GAME CANVAS -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0 w-full h-full"></canvas>
+
+    <!-- CRT SCANLINE & VIGNETTE OVERLAY -->
+    <div id="screenFx" class="absolute inset-0 pointer-events-none scanline vignette z-10"></div>
+
+    <!-- HUD OVERLAY -->
+    <div id="hud" class="absolute inset-0 z-20 pointer-events-none hidden flex flex-col justify-between p-4 md:p-6 w-full h-full">
+        <!-- TOP HUD BAR -->
+        <div class="flex justify-between items-start w-full gap-4">
+            <!-- Objectives & Keys -->
+            <div class="hud-glass p-4 rounded-xl max-w-lg pointer-events-auto transition-all">
+                <div class="flex justify-between items-center mb-2 gap-3">
+                    <div class="text-[11px] text-red-500 uppercase tracking-widest flex items-center gap-2 tech-font">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
+                        <span id="txtDirective">SECURITY DIRECTIVE</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <!-- LANGUAGE SELECTOR -->
+                        <div class="flex items-center gap-1 bg-yellow-950/80 border border-yellow-500/80 px-2.5 py-1 rounded-md shadow-lg">
+                            <i class="fa-solid fa-globe text-yellow-400 text-xs"></i>
+                            <select id="langSelect" class="bg-transparent text-xs text-yellow-300 font-bold outline-none cursor-pointer tech-font">
+                                <option value="en" class="bg-gray-900 text-white">English (EN)</option>
+                                <option value="es" class="bg-gray-900 text-white">Español (ES)</option>
+                                <option value="fr" class="bg-gray-900 text-white">Français (FR)</option>
+                                <option value="de" class="bg-gray-900 text-white">Deutsch (DE)</option>
+                                <option value="ku" class="bg-gray-900 text-white">Kurdî / کوردی (KU)</option>
+                                <option value="ru" class="bg-gray-900 text-white">Русский (RU)</option>
+                                <option value="ar" class="bg-gray-900 text-white">العربية (AR)</option>
+                            </select>
+                        </div>
+                        <!-- MUSIC TOGGLE BUTTON -->
+                        <button id="btnToggleMusic" class="flex items-center gap-1.5 bg-red-950/90 border border-red-600 px-2.5 py-1 rounded-md shadow-lg text-xs font-bold text-red-400 hover:text-white hover:bg-red-900 transition-all cursor-pointer tech-font">
+                            <i id="musicIcon" class="fa-solid fa-music text-emerald-400"></i>
+                            <span id="musicText" class="text-emerald-400">MUSIC: ON</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="objectiveText" class="text-sm font-bold text-gray-200 tracking-wide">
+                    Search facility for 4 Keycode Digits [0/4]
+                </div>
+
+                <div class="mt-3 pt-2.5 border-t border-red-900/40 flex items-center justify-between">
+                    <span id="txtKeycode" class="text-xs text-gray-400 tracking-wider">KEYCODE:</span>
+                    <div id="digitSlots" class="flex gap-2">
+                        <div id="digit1" class="w-9 h-9 rounded-lg border border-gray-800 bg-black/60 flex items-center justify-center text-gray-600 font-mono font-bold text-xl shadow-inner transition-all">?</div>
+                        <div id="digit2" class="w-9 h-9 rounded-lg border border-gray-800 bg-black/60 flex items-center justify-center text-gray-600 font-mono font-bold text-xl shadow-inner transition-all">?</div>
+                        <div id="digit3" class="w-9 h-9 rounded-lg border border-gray-800 bg-black/60 flex items-center justify-center text-gray-600 font-mono font-bold text-xl shadow-inner transition-all">?</div>
+                        <div id="digit4" class="w-9 h-9 rounded-lg border border-gray-800 bg-black/60 flex items-center justify-center text-gray-600 font-mono font-bold text-xl shadow-inner transition-all">?</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threat Level & Minimap Preview -->
+            <div id="minimapContainer" class="hud-glass p-2.5 rounded-xl pointer-events-auto flex flex-col items-center">
+                <canvas id="minimapCanvas" width="170" height="170" class="rounded-lg border border-gray-800 shadow-inner bg-black"></canvas>
+                <div class="text-[11px] text-gray-400 w-full flex justify-between px-1 mt-1.5 uppercase tracking-wider tech-font">
+                    <span>MAP [M]</span>
+                    <span id="threatStatus" class="text-emerald-400 font-bold">STATUS: CLEAR</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER INTERACTION PROMPT -->
+        <div id="actionPrompt" class="self-center bg-black/90 text-yellow-400 border border-yellow-500/80 px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl hidden animate-bounce pointer-events-auto tech-font">
+            [E] Hide in Locker
+        </div>
+
+        <!-- HIDING HUD OVERLAY -->
+        <div id="hidingUI" class="absolute inset-0 bg-black/92 flex flex-col items-center justify-center hidden pointer-events-auto backdrop-blur-md">
+            <i class="fa-solid fa-eye-slash text-5xl text-red-600 mb-3 animate-pulse"></i>
+            <div class="text-red-500 font-bold text-xl tracking-widest uppercase tech-font">CONCEALED IN LOCKER</div>
+            <div class="text-xs text-gray-400 mt-1">Remain quiet. Monster detection significantly reduced.</div>
+            <div class="text-xs text-yellow-400 mt-5 border border-yellow-500/50 px-4 py-1.5 rounded-full bg-yellow-950/40">[E] Exit Locker</div>
+        </div>
+
+        <!-- BOTTOM HUD (VITALITY / STAMINA / BATTERY / NOISE) -->
+        <div class="flex justify-between items-end w-full gap-4">
+            <div class="w-80 hud-glass p-3.5 rounded-xl flex flex-col gap-2.5 pointer-events-auto">
+                <!-- Health Bar -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-400 flex items-center gap-1.5"><i class="fa-solid fa-heart text-red-500"></i> VITALITY</span>
+                        <span id="healthVal" class="text-red-500 font-bold">100%</span>
+                    </div>
+                    <div class="w-full bg-black/80 h-2.5 rounded-full overflow-hidden border border-gray-800 shadow-inner">
+                        <div id="healthBar" class="bg-gradient-to-r from-red-800 to-red-500 h-full w-full transition-all duration-150"></div>
+                    </div>
+                </div>
+
+                <!-- Stamina Bar -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-400 flex items-center gap-1.5"><i class="fa-solid fa-person-running text-amber-500"></i> STAMINA [SHIFT]</span>
+                        <span id="staminaVal" class="text-amber-500 font-bold">100%</span>
+                    </div>
+                    <div class="w-full bg-black/80 h-2.5 rounded-full overflow-hidden border border-gray-800 shadow-inner">
+                        <div id="staminaBar" class="bg-gradient-to-r from-amber-700 to-amber-400 h-full w-full transition-all duration-75"></div>
+                    </div>
+                </div>
+
+                <!-- Flashlight Battery -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-400 flex items-center gap-1.5"><i class="fa-solid fa-bolt text-yellow-400"></i> BATTERY [F]</span>
+                        <span id="batteryVal" class="text-yellow-400 font-bold">100%</span>
+                    </div>
+                    <div class="w-full bg-black/80 h-2.5 rounded-full overflow-hidden border border-gray-800 shadow-inner">
+                        <div id="batteryBar" class="bg-gradient-to-r from-yellow-600 to-yellow-300 h-full w-full transition-all duration-75"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Noise Indicator -->
+            <div class="hud-glass p-4 rounded-xl flex items-center gap-3.5 pointer-events-auto">
+                <i id="noiseIcon" class="fa-solid fa-volume-off text-gray-500 text-2xl"></i>
+                <div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-widest tech-font">ACOUSTIC PROFILE</div>
+                    <div id="noiseText" class="text-xs font-bold text-gray-300">SILENT</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LARGE ARCHITECTURAL MAP MODAL (TOGGLED WITH 'M') -->
+    <div id="mapModal" class="absolute inset-0 z-30 bg-black/92 flex flex-col items-center justify-center p-6 hidden backdrop-blur-md">
+        <div class="relative hud-glass rounded-2xl p-5 max-w-4xl max-h-[90vh] flex flex-col items-center shadow-2xl w-full border-red-600/60">
+            <div class="w-full flex justify-between items-center mb-3 px-2 border-b border-gray-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-map-location-dot text-red-500 text-xl"></i>
+                    <h3 class="text-lg font-bold text-red-500 tracking-wider tech-font">FACILITY EPSILON - ARCHITECTURAL BLUEPRINT</h3>
+                </div>
+                <div class="text-xs text-gray-400">Press <span class="text-yellow-400 font-bold">[M]</span> or <span class="text-yellow-400 font-bold">[TAB]</span> to Close</div>
+            </div>
+
+            <canvas id="largeMapCanvas" width="720" height="680" class="bg-gray-950 rounded-xl border border-red-900/50 shadow-2xl"></canvas>
+
+            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-300 w-full px-4 pt-3 border-t border-gray-900">
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 bg-cyan-400 rounded-full inline-block shadow-[0_0_8px_#38bdf8]"></span> Current Position</div>
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 bg-red-600 font-bold text-white flex items-center justify-center text-[9px] rounded">X</span> Collapsed Room</div>
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 bg-yellow-400 rounded-full inline-block shadow-[0_0_8px_#facc15]"></span> Keycode Digit</div>
+                <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 bg-emerald-500 rounded-full inline-block shadow-[0_0_8px_#10b981]"></span> Extraction Gate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- START TITLE SCREEN -->
+    <div id="startScreen" class="absolute inset-0 z-40 bg-black/95 flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
+        <div class="max-w-xl flex flex-col items-center">
+            <i class="fa-solid fa-biohazard text-7xl text-red-600 mb-4 animate-pulse filter drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]"></i>
+            <h1 class="horror-title text-5xl md:text-7xl text-red-600 mb-1 tracking-widest">FACILITY EPSILON</h1>
+            <p class="text-red-500/80 text-xs md:text-sm tracking-widest uppercase mb-6 tech-font">CONTAINMENT BREACH - CODE ESCAPE</p>
+
+            <div class="bg-red-950/20 border border-red-900/60 p-5 rounded-xl text-left text-xs text-gray-300 leading-relaxed mb-6 space-y-2 shadow-2xl backdrop-blur-md">
+                <p id="startAlert1"><strong class="text-red-400">BLUEPRINT ALERT:</strong> All rooms marked with <span class="text-red-500 font-bold">[X]</span> are permanently sealed.</p>
+                <p id="startAlert2">• Search the open rooms for the <span class="text-yellow-400 font-bold">4 Keycode Digits</span> needed to unlock the escape gate.</p>
+                <p id="startAlert3">• Complete code is <span class="text-yellow-400 font-bold font-mono">1 3 2 2</span> once all 4 digits are revealed!</p>
+                <p id="startAlert4">• Avoid <span class="text-red-500 font-bold">Entity-09</span>. Hide in lockers or sprint when chased!</p>
+            </div>
+
+            <!-- Controls List -->
+            <div class="grid grid-cols-2 gap-3 w-full text-left text-xs mb-6 bg-black/80 p-4 border border-gray-800 rounded-xl shadow-lg">
+                <div id="ctrl1"><span class="text-red-400 font-bold">WASD / ARROWS:</span> Navigate</div>
+                <div id="ctrl2"><span class="text-red-400 font-bold">MOUSE:</span> Flashlight Direction</div>
+                <div id="ctrl3"><span class="text-red-400 font-bold">SHIFT:</span> Sprint (Generates Noise)</div>
+                <div id="ctrl4"><span class="text-red-400 font-bold">WALK OVER:</span> Auto-Collect Digits/Batteries</div>
+                <div id="ctrl5"><span class="text-red-400 font-bold">E / SPACE:</span> Hide in Locker</div>
+                <div id="ctrl6"><span class="text-red-400 font-bold">M / TAB:</span> View Architectural Map</div>
+            </div>
+
+            <!-- START SCREEN LANGUAGE SELECTOR -->
+            <div class="flex items-center gap-2 mb-6 bg-gray-950/90 border border-yellow-500/80 px-4 py-2.5 rounded-xl shadow-lg">
+                <label for="langSelectStart" id="lblLangSelect" class="text-xs text-yellow-400 font-bold uppercase tracking-wider tech-font">Language / Idioma / Langue / Sprache / کوردی / Язык / العربية:</label>
+                <select id="langSelectStart" class="bg-black text-xs text-yellow-300 font-bold border border-yellow-600 rounded px-2.5 py-1 outline-none cursor-pointer tech-font">
+                    <option value="en">English (EN)</option>
+                    <option value="es">Español (ES)</option>
+                    <option value="fr">Français (FR)</option>
+                    <option value="de">Deutsch (DE)</option>
+                    <option value="ku">Kurdî / کوردی (KU)</option>
+                    <option value="ru">Русский (RU)</option>
+                    <option value="ar">العربية (AR)</option>
+                </select>
+            </div>
+
+            <button id="btnStart" class="px-10 py-3.5 bg-gradient-to-r from-red-800 to-red-600 hover:from-red-700 hover:to-red-500 text-white font-bold tracking-widest rounded-xl transition-all duration-300 transform hover:scale-105 border border-red-400 shadow-2xl shadow-red-900/60 cursor-pointer tech-font">
+                ENTER FACILITY
+            </button>
+        </div>
+    </div>
+
+    <!-- CODE DISCOVERED POPUP MODAL -->
+    <div id="codePopup" class="absolute inset-0 z-50 bg-black/92 backdrop-blur-md flex flex-col items-center justify-center p-6 hidden">
+        <div class="hud-glass-emerald rounded-2xl p-7 max-w-md w-full text-center shadow-2xl flex flex-col items-center border-emerald-500/80">
+            <i class="fa-solid fa-key text-5xl text-emerald-400 mb-3 animate-pulse"></i>
+            <h2 id="txtCodeTitle" class="text-2xl font-bold text-emerald-400 tracking-wider mb-2 tech-font">ACCESS CODE DISCOVERED!</h2>
+            <p id="txtCodeDesc" class="text-gray-300 text-xs mb-4">All 4 keycode digits have been retrieved from the facility.</p>
+            
+            <div class="bg-black/90 border border-emerald-500/80 rounded-xl p-4 my-2 w-full flex items-center justify-center gap-3 shadow-inner">
+                <span class="text-emerald-400 font-mono font-bold text-5xl tracking-widest drop-shadow-[0_0_15px_rgba(16,185,129,0.9)]">1 3 2 2</span>
+            </div>
+
+            <p id="txtCodeFooter" class="text-emerald-400/90 text-xs font-bold mt-4 mb-6 uppercase tracking-wider tech-font">PROCEED TO THE EXTRACTION GATE KEYPAD TO ESCAPE!</p>
+
+            <button id="btnCloseCodePopup" class="w-full py-3.5 bg-gradient-to-r from-emerald-700 to-emerald-500 hover:from-emerald-600 hover:to-emerald-400 text-white font-bold tracking-widest rounded-xl border border-emerald-300 shadow-xl transition-all hover:scale-105 cursor-pointer tech-font">
+                CLOSE GAME
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="gameOverScreen" class="absolute inset-0 z-50 bg-red-950/95 flex flex-col items-center justify-center p-6 text-center hidden backdrop-blur-md">
+        <h2 id="txtGameOverTitle" class="horror-title text-7xl text-red-600 mb-2 tracking-widest">SIGNAL LOST</h2>
+        <p id="txtGameOverDesc" class="text-gray-300 text-sm max-w-md mb-8">Subject vital signs ceased. Entity-09 remains uncontained.</p>
+        <button id="btnRestart" class="px-10 py-3.5 bg-red-700 hover:bg-red-600 text-white font-bold tracking-widest rounded-xl border border-red-500 shadow-2xl shadow-red-900/60 transition-all hover:scale-105 cursor-pointer tech-font">
+            RE-INITIALIZE ATTEMPT
+        </button>
+    </div>
+
+    <!-- VICTORY SCREEN -->
+    <div id="victoryScreen" class="absolute inset-0 z-50 bg-emerald-950/95 flex flex-col items-center justify-center p-6 text-center hidden backdrop-blur-md">
+        <i class="fa-solid fa-door-open text-6xl text-emerald-400 mb-3 animate-bounce"></i>
+        <h2 id="txtVictoryTitle" class="text-5xl text-emerald-400 font-bold mb-2 tracking-widest tech-font">EXTRACTION SUCCESSFUL</h2>
+        <p id="txtVictoryDesc" class="text-gray-300 text-sm mb-6">You escaped Facility Epsilon with critical evidence.</p>
+
+        <div class="hud-glass-emerald p-6 rounded-2xl text-left text-xs text-gray-200 space-y-3 mb-8 w-80 shadow-2xl">
+            <div class="flex justify-between"><span id="lblTime">Escape Time:</span> <span id="statTime" class="text-emerald-400 font-mono font-bold">00:00</span></div>
+            <div class="flex justify-between"><span id="lblBatteries">Batteries Collected:</span> <span id="statBatteries" class="text-emerald-400 font-mono font-bold">0</span></div>
+            <div class="flex justify-between"><span id="lblStealth">Stealth Rating:</span> <span id="statStealth" class="text-emerald-400 font-mono font-bold">100%</span></div>
+        </div>
+
+        <button id="btnPlayAgain" class="px-10 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-widest rounded-xl border border-emerald-400 shadow-2xl shadow-emerald-900/60 transition-all hover:scale-105 cursor-pointer tech-font">
+            PLAY AGAIN
+        </button>
+    </div>
+
+    <!-- MAIN GAME LOGIC -->
+    <script>
+        /**
+         * AUDIO SYSTEM - MUSIC ONLY (SYNTH SOUNDS REMOVED)
+         */
+        class SoundSystem {
+            constructor() {
+                this.bgAudio = null;
+                this.musicEnabled = true;
+            }
+
+            init() {
+                this.startBgMusic();
+            }
+
+            startBgMusic() {
+                if (!this.bgAudio) {
+                    this.bgAudio = new Audio('universfield-mountain-silence-565358.mp3');
+                    this.bgAudio.loop = true;
+                    this.bgAudio.volume = 0.5;
+                }
+                if (this.musicEnabled) {
+                    this.bgAudio.play().catch(() => {});
+                }
+            }
+
+            toggleMusic() {
+                this.musicEnabled = !this.musicEnabled;
+                if (!this.bgAudio) {
+                    this.startBgMusic();
+                } else {
+                    if (this.musicEnabled) {
+                        this.bgAudio.play().catch(() => {});
+                    } else {
+                        this.bgAudio.pause();
+                    }
+                }
+
+                const musicIcon = document.getElementById('musicIcon');
+                const musicText = document.getElementById('musicText');
+                if (musicIcon && musicText) {
+                    if (this.musicEnabled) {
+                        musicIcon.className = "fa-solid fa-music text-emerald-400";
+                        musicText.innerText = "MUSIC: ON";
+                        musicText.className = "text-emerald-400";
+                    } else {
+                        musicIcon.className = "fa-solid fa-volume-xmark text-gray-500";
+                        musicText.innerText = "MUSIC: OFF";
+                        musicText.className = "text-gray-500";
+                    }
+                }
+            }
+
+            // All synthesized sound effects disabled per request
+            playFootstep() {}
+            playFlashlightClick() {}
+            playPickup() {}
+            playHeartbeat() {}
+            playScream() {}
+        }
+
+        const audio = new SoundSystem();
+
+        /**
+         * MAP BLUEPRINT & GRID METRICS
+         */
+        const TILE_SIZE = 80; // High resolution tile scale
+        const MAP_TILES_X = 35;
+        const MAP_TILES_Y = 35;
+
+        const FACILITY_MAP = {
+            walkableZones: [
+                { x: 5, y: 3, w: 3, h: 26 },
+                { x: 5, y: 1, w: 5, h: 3 },
+                { x: 2, y: 12, w: 3, h: 3 },
+                { x: 2, y: 18, w: 3, h: 3 },
+                { x: 2, y: 24, w: 3, h: 3 },
+                { x: 8, y: 9, w: 8, h: 2 },
+                { x: 13, y: 8, w: 3, h: 3 },
+                { x: 8, y: 15, w: 20, h: 2 },
+                { x: 8, y: 24, w: 18, h: 2 },
+                { x: 10, y: 17, w: 4, h: 4 },
+                { x: 17, y: 17, w: 4, h: 4 },
+                { x: 22, y: 17, w: 5, h: 4 },
+                { x: 24, y: 13, w: 4, h: 8 },
+                { x: 24, y: 21, w: 5, h: 6 },
+                { x: 20, y: 26, w: 4, h: 5 },
+                { x: 15, y: 17, w: 2, h: 8 },
+                { x: 21, y: 21, w: 2, h: 4 },
+                { x: 8, y: 17, w: 2, h: 8 }
+            ],
+            blockedZones: [
+                { id: "X1", x: 2, y: 5, w: 3, h: 2 },
+                { id: "X2", x: 2, y: 7.5, w: 3, h: 2 },
+                { id: "X3", x: 2, y: 10, w: 3, h: 2 },
+                { id: "X4", x: 2, y: 15, w: 3, h: 2 },
+                { id: "X5", x: 2, y: 21, w: 3, h: 2 },
+                { id: "X6", x: 8, y: 5, w: 3, h: 3 },
+                { id: "X7", x: 15, y: 19, w: 2, h: 2 },
+                { id: "X8", x: 12, y: 21, w: 2, h: 2 },
+                { id: "X9", x: 19, y: 22, w: 2, h: 2 },
+                { id: "X10", x: 10, y: 26, w: 2, h: 2 },
+                { id: "X11", x: 13, y: 26, w: 2, h: 2 },
+                { id: "X12", x: 17, y: 26, w: 2, h: 2 },
+                { id: "X13", x: 26, y: 19, w: 2, h: 2 },
+                { id: "X14", x: 21, y: 28, w: 2, h: 2 }
+            ],
+            items: [
+                { id: 1, type: "digit", value: "1", x: 15 * TILE_SIZE, y: 9.5 * TILE_SIZE, collected: false },
+                { id: 2, type: "digit", value: "3", x: 3.5 * TILE_SIZE, y: 25.5 * TILE_SIZE, collected: false },
+                { id: 3, type: "digit", value: "2", x: 25.5 * TILE_SIZE, y: 15 * TILE_SIZE, collected: false },
+                { id: 4, type: "digit", value: "2", x: 18.5 * TILE_SIZE, y: 18.5 * TILE_SIZE, collected: false },
+                { id: 5, type: "battery", x: 3.5 * TILE_SIZE, y: 13.5 * TILE_SIZE, collected: false },
+                { id: 6, type: "battery", x: 23 * TILE_SIZE, y: 18.5 * TILE_SIZE, collected: false },
+                { id: 7, type: "battery", x: 21.5 * TILE_SIZE, y: 28.5 * TILE_SIZE, collected: false }
+            ],
+            lockers: [
+                { x: 6.5 * TILE_SIZE, y: 8 * TILE_SIZE },
+                { x: 11.5 * TILE_SIZE, y: 18 * TILE_SIZE },
+                { x: 25.5 * TILE_SIZE, y: 23 * TILE_SIZE }
+            ],
+            exitGate: { x: 22 * TILE_SIZE, y: 30 * TILE_SIZE, w: 2 * TILE_SIZE, h: 1 * TILE_SIZE }
+        };
+
+        /**
+         * GAME STATE & VARIABLES
+         */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const mCtx = minimapCanvas.getContext('2d');
+
+        const largeMapCanvas = document.getElementById('largeMapCanvas');
+        const lCtx = largeMapCanvas.getContext('2d');
+
+        let gameState = 'START';
+        let keys = {};
+        let mousePos = { x: 0, y: 0 };
+
+        const particles = Array.from({ length: 50 }, () => ({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            size: Math.random() * 2 + 0.5,
+            speedX: (Math.random() - 0.5) * 0.4,
+            speedY: (Math.random() - 0.5) * 0.4,
+            alpha: Math.random() * 0.6 + 0.2
+        }));
+
+        const player = {
+            x: 6.5 * TILE_SIZE,
+            y: 2.5 * TILE_SIZE,
+            radius: 20,
+            angle: 0,
+            speed: 4.8,
+            sprintSpeed: 7.5,
+            stamina: 100,
+            health: 100,
+            battery: 100,
+            flashlightOn: true,
+            isSprinting: false,
+            isHiding: false,
+            collectedDigits: [],
+            batteriesCollected: 0,
+            noiseLevel: 0
+        };
+
+        const monster = {
+            x: 25 * TILE_SIZE,
+            y: 24 * TILE_SIZE,
+            radius: 26,
+            angle: 0,
+            speed: 2.8,
+            chaseSpeed: 5.4,
+            state: 'PATROL',
+            targetWaypoint: 0,
+            investigatePos: null,
+            waypoints: [
+                { x: 6.5 * TILE_SIZE, y: 16 * TILE_SIZE },
+                { x: 15 * TILE_SIZE, y: 16 * TILE_SIZE },
+                { x: 25 * TILE_SIZE, y: 16 * TILE_SIZE },
+                { x: 25 * TILE_SIZE, y: 24 * TILE_SIZE },
+                { x: 15 * TILE_SIZE, y: 25 * TILE_SIZE },
+                { x: 6.5 * TILE_SIZE, y: 25 * TILE_SIZE }
+            ]
+        };
+
+        let startTime = 0;
+        let totalTime = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        /**
+         * MULTI-LANGUAGE TRANSLATION DICTIONARY
+         */
+        const TRANSLATIONS = {
+            en: {
+                directive: "SECURITY DIRECTIVE",
+                objSearch: "Search facility for 4 Keycode Digits",
+                objComplete: "CODE COMPLETE: \"1322\" - Enter Keypad at Extraction Gate!",
+                codeTitle: "ACCESS CODE DISCOVERED!",
+                codeDesc: "All 4 keycode digits have been retrieved from the facility.",
+                codeFooter: "PROCEED TO THE EXTRACTION GATE KEYPAD TO ESCAPE!",
+                btnResume: "CLOSE GAME",
+                threatChase: "THREAT: PURSUIT!",
+                threatSearch: "THREAT: SEARCHING",
+                threatClear: "STATUS: CLEAR",
+                promptHide: "[E] Hide in Locker",
+                promptUnlocked: "KEYPAD UNLOCKED: EXTRACTING...",
+                promptLocked: "KEYPAD LOCKED: Collect 4 Digits First",
+                startAlert1: "BLUEPRINT ALERT: All rooms marked with [X] are permanently sealed.",
+                startAlert2: "• Search the open rooms for the 4 Keycode Digits needed to unlock the escape gate.",
+                startAlert3: "• Complete code is 1 3 2 2 once all 4 digits are revealed!",
+                startAlert4: "• Avoid Entity-09. Hide in lockers or sprint when chased!",
+                ctrl1: "WASD / ARROWS: Navigate",
+                ctrl2: "MOUSE: Flashlight Direction",
+                ctrl3: "SHIFT: Sprint (Generates Noise)",
+                ctrl4: "WALK OVER: Auto-Collect Digits/Batteries",
+                ctrl5: "E / SPACE: Hide in Locker",
+                ctrl6: "M / TAB: View Architectural Map",
+                btnStart: "ENTER FACILITY",
+                gameOverTitle: "SIGNAL LOST",
+                gameOverDesc: "Subject vital signs ceased. Entity-09 remains uncontained.",
+                btnRestart: "RE-INITIALIZE ATTEMPT",
+                victoryTitle: "EXTRACTION SUCCESSFUL",
+                victoryDesc: "You escaped Facility Epsilon with critical evidence.",
+                lblTime: "Escape Time:",
+                lblBatteries: "Batteries Collected:",
+                lblStealth: "Stealth Rating:",
+                btnPlayAgain: "PLAY AGAIN",
+                txtKeycodeLabel: "KEYCODE:"
+            },
+            es: {
+                directive: "DIRECTIVA DE SEGURIDAD",
+                objSearch: "Busca en la instalación los 4 dígitos",
+                objComplete: "CÓDIGO COMPLETO: \"1322\" - ¡Ingrésalo en la puerta de salida!",
+                codeTitle: "¡CÓDIGO DE ACCESO DESCUBIERTO!",
+                codeDesc: "Se han encontrado los 4 dígitos del código en la instalación.",
+                codeFooter: "¡DIRÍGETE A LA PUERTA DE EXTRACCIÓN PARA ESCAPAR!",
+                btnResume: "CERRAR JUEGO",
+                threatChase: "AMENAZA: ¡PERSECUCIÓN!",
+                threatSearch: "AMENAZA: BUSCANDO",
+                threatClear: "ESTADO: DESPEJADO",
+                promptHide: "[E] Esconderse en la Taquilla",
+                promptUnlocked: "TECLADO DESBLOQUEADO: EXTREYENDO...",
+                promptLocked: "TECLADO BLOQUEADO: Recoge los 4 dígitos primero",
+                startAlert1: "ALERTA: Todas las salas marcadas con [X] están selladas.",
+                startAlert2: "• Busca los 4 dígitos en las salas abiertas para abrir la puerta.",
+                startAlert3: "• El código completo es 1 3 2 2 una vez encontrados los 4 dígitos.",
+                startAlert4: "• Evita a la Entidad-09. ¡Escóndete o corre si te persigue!",
+                ctrl1: "WASD / FLECHAS: Moverse",
+                ctrl2: "RATÓN: Dirección de Linterna",
+                ctrl3: "SHIFT: Correr (Genera Ruido)",
+                ctrl4: "PASAR SOBRE: Recoger dígitos/baterías",
+                ctrl5: "E / ESPACIO: Esconderse en Taquilla",
+                ctrl6: "M / TAB: Ver Mapa Arquitectónico",
+                btnStart: "ENTRAR A LA INSTALACIÓN",
+                gameOverTitle: "SEÑAL PERDIDA",
+                gameOverDesc: "Signos vitales cesados. La Entidad-09 sigue libre.",
+                btnRestart: "REINTENTAR",
+                victoryTitle: "EXTRACCIÓN EXITOSA",
+                victoryDesc: "Escapaste de la Instalación Épsilon con las pruebas.",
+                lblTime: "Tiempo de escape:",
+                lblBatteries: "Baterías recogidas:",
+                lblStealth: "Nivel de sigilo:",
+                btnPlayAgain: "JUGAR DE NUEVO",
+                txtKeycodeLabel: "CÓDIGO:"
+            },
+            fr: {
+                directive: "DIRECTIVE DE SÉCURITÉ",
+                objSearch: "Cherchez les 4 chiffres du code dans le complexe",
+                objComplete: "CODE COMPLET: \"1322\" - Entrez-le à la porte de sortie!",
+                codeTitle: "CODE D'ACCÈS DÉCOUVERT!",
+                codeDesc: "Les 4 chiffres du code ont été récupérés dans le complexe.",
+                codeFooter: "RENDEZ-VOUS À LA PORTE D'EXTRACTION POUR VOUS ÉCHAPPER!",
+                btnResume: "FERMER LE JEU",
+                threatChase: "MENACE: POURSUITE!",
+                threatSearch: "MENACE: RECHERCHE",
+                threatClear: "STATUT: DÉGAGÉ",
+                promptHide: "[E] Se cacher dans le casier",
+                promptUnlocked: "DIGICODE DÉVERROUILLÉ: EXTRACTION...",
+                promptLocked: "DIGICODE VERROUILLÉ: Trouvez d'abord les 4 chiffres",
+                startAlert1: "ALERTE: Toutes les pièces marquées d'un [X] sont scellées.",
+                startAlert2: "• Cherchez les 4 chiffres pour déverrouiller la porte de sortie.",
+                startAlert3: "• Le code complet est 1 3 2 2 une fois les 4 chiffres trouvés.",
+                startAlert4: "• Évitez l'Entité-09. Cachez-vous ou courez en cas de poursuite!",
+                ctrl1: "WASD / FLÈCHES: Se déplacer",
+                ctrl2: "SOURIS: Direction de la lampe",
+                ctrl3: "SHIFT: Courir (Fait du bruit)",
+                ctrl4: "MARCHER DESSUS: Ramasser objets",
+                ctrl5: "E / ESPACE: Se cacher dans le casier",
+                ctrl6: "M / TAB: Voir la carte du complexe",
+                btnStart: "ENTRER DANS LE COMPLEXE",
+                gameOverTitle: "SIGNAL PERDU",
+                gameOverDesc: "Signes vitaux éteints. L'Entité-09 reste non confinée.",
+                btnRestart: "RÉESSAYER",
+                victoryTitle: "EXTRACTION RÉUSSIE",
+                victoryDesc: "Vous vous êtes échappé du Complexe Épsilon.",
+                lblTime: "Temps d'évacuation:",
+                lblBatteries: "Piles collectées:",
+                lblStealth: "Indice de discrétion:",
+                btnPlayAgain: "REJOUER",
+                txtKeycodeLabel: "CODE:"
+            },
+            de: {
+                directive: "SICHERHEITSANWEISUNG",
+                objSearch: "Suche in der Anlage nach 4 Code-Ziffern",
+                objComplete: "CODE VOLLSTÄNDIG: \"1322\" - Am Ausgang eingeben!",
+                codeTitle: "ZUGANGSCODE ENTDECKT!",
+                codeDesc: "Alle 4 Code-Ziffern wurden in der Anlage gefunden.",
+                codeFooter: "GEHE ZUM AUSGANGSTORE-TASTENFELD, UM ZU ENTKOMMEN!",
+                btnResume: "SPIEL SCHLIESSEN",
+                threatChase: "BEDROHUNG: VERFOLGUNG!",
+                threatSearch: "BEDROHUNG: SUCHT",
+                threatClear: "STATUS: SICHER",
+                promptHide: "[E] Im Spind verstecken",
+                promptUnlocked: "TASTENFELD FREIGESCHALTET: EVAKUIERUNG...",
+                promptLocked: "TASTENFELD GESPERRT: Zuerst 4 Ziffern sammeln",
+                startAlert1: "WARNUNG: Alle mit [X] markierten Räume sind versiegelt.",
+                startAlert2: "• Durchsuche die offenen Räume nach den 4 Code-Ziffern.",
+                startAlert3: "• Der vollständige Code lautet 1 3 2 2.",
+                startAlert4: "• Meide Entität-09. Verstecke dich im Spind!",
+                ctrl1: "WASD / PFEILE: Bewegen",
+                ctrl2: "MAUS: Taschenlampenrichtung",
+                ctrl3: "SHIFT: SPRINTEN (Macht Lärm)",
+                ctrl4: "DRÜBERLAUFEN: Ziffern/Batterien aufnehmen",
+                ctrl5: "E / LEERTASTE: Im Spind verstecken",
+                ctrl6: "M / TAB: Architektur-Karte anzeigen",
+                btnStart: "ANLAGE BETRETEN",
+                gameOverTitle: "SIGNAL VERLOREN",
+                gameOverDesc: "Vitalzeichen erloschen. Entität-09 ist weiterhin frei.",
+                btnRestart: "NEUSTART",
+                victoryTitle: "EVAKUIERUNG ERFOLGREICH",
+                victoryDesc: "Du bist erfolgreich aus Anlage Epsilon entkommen.",
+                lblTime: "Fluchtzeit:",
+                lblBatteries: "Gesammelte Batterien:",
+                lblStealth: "Tarnungs-Bewertung:",
+                btnPlayAgain: "NOCHMAL SPIELEN",
+                txtKeycodeLabel: "CODE:"
+            },
+            ku: {
+                directive: "ڕێنمایی ئاسایشی دەزگا",
+                objSearch: "گەڕان لە دەزگاکە بۆ دۆزینەوەی ٤ ژمارەی کۆدەکە",
+                objComplete: "کۆدەکە تەواوبوو: \"١٣٢٢\" - برۆ بۆ کیپادی دەرگای دەربازبوون!",
+                codeTitle: "کۆدی چوونەژوورەوە دۆزرایەوە!",
+                codeDesc: "سەرجەم ٤ ژمارەی کۆدەکە لە ژوورەکانی دەزگاکە دۆزرانەوە.",
+                codeFooter: "بڕۆ بۆ کیپادی دەرگای دەربازبوون بۆ ڕاکردن!",
+                btnResume: "داخستنی یاری",
+                threatChase: "مەترسی: بەدواداوچوونی ڕاستەوخۆ!",
+                threatSearch: "مەترسی: گەڕان بەدوای یاریزاندا",
+                threatClear: "بارودۆخ: ئاسایی و ئارامە",
+                promptHide: "[E] خۆت بشارەوە لە کۆمۆدەکەدا",
+                promptUnlocked: "کیپاد کرایەوە: دەربازبوون...",
+                promptLocked: "کیپاد قفڵە: پێویستە سەرەتا ٤ ژمارەکە کۆبکەیتەوە",
+                startAlert1: "ئاگاداری نەخشە: هەموو ئەو ژوورانەی نیشانەی [X] یان لەسەرە بە تەواوی داخراون.",
+                startAlert2: "• لە ژوورە کراوەکاندا بگەڕێ بۆ دۆزینەوەی ٤ ژمارەی کۆدی دەرگا.",
+                startAlert3: "• کۆدی تەواو 1 3 2 2 ە دوای دۆزینەوەی هەموو ژمارەکان.",
+                startAlert4: "• دووربکەوەرەوە لە بونەوەری Entity-09. خۆت بشارەوە کاتێک بەدواتدا دێت!",
+                ctrl1: "WASD / ئاراستەکان: جوڵەکردن",
+                ctrl2: "ماوس: ئاراستەکردنی ڕووناکی flashlight",
+                ctrl3: "SHIFT: ڕاکردن (دەنگی زۆر دروست دەکات)",
+                ctrl4: "تێپەڕبوون بەسەریدا: کۆکردنەوەی خۆکارانەی کۆد و پاتری",
+                ctrl5: "E / SPACE: خۆشاردنەوە لە کۆمۆد",
+                ctrl6: "M / TAB: بینینی نەخشەی گشتی دەزگا",
+                btnStart: "چوونەژوورەوە بۆ دەزگاکە",
+                gameOverTitle: "پەیوەندی پچڕا",
+                gameOverDesc: "نیشانەکانی ژیان وەستان. Entity-09 هێشتا ئازادە.",
+                btnRestart: "دووبارە هەوڵدانەوە",
+                victoryTitle: "دەربازبوون سەرکەوتوو بوو",
+                victoryDesc: "بە سەرکەوتوویی و بە بەڵگەی پێویستەوە لە دەزگای Epsilon ڕاکردیت.",
+                lblTime: "کاتی دەربازبوون:",
+                lblBatteries: "پاتری کۆکراوە:",
+                lblStealth: "ئاستی بێدەنگی:",
+                btnPlayAgain: "دووبارە یاری بکەرەوە",
+                txtKeycodeLabel: "کۆد:"
+            },
+            ru: {
+                directive: "ДИРЕКТИВА БЕЗОПАСНОСТИ",
+                objSearch: "Найдите 4 цифры кода в комплексе",
+                objComplete: "КОД СОБРАН: \"1322\" - Введите его на клавиатуре у ворот!",
+                codeTitle: "КОД ДОСТУПА НАЙДЕН!",
+                codeDesc: "Все 4 цифры кода успешно найдены в комплексе.",
+                codeFooter: "ИДИТЕ К КЛАВИАТУРЕ ЭВАКУАЦИОННЫХ ВОРОТ, ЧТОБЫ СБЕЖАТЬ!",
+                btnResume: "ЗАКРЫТЬ ИГРУ",
+                threatChase: "УГРОЗА: ПРЕСЛЕДОВАНИЕ!",
+                threatSearch: "УГРОЗА: ПОИСК",
+                threatClear: "СТАТУС: БЕЗОПАСНО",
+                promptHide: "[E] Спрятаться в шкафчике",
+                promptUnlocked: "КЛАВИАТУРА РАЗБЛОКИРОВАНА: ЭВАКУАЦИЯ...",
+                promptLocked: "КЛАВИАТУРА ЗАБЛОКИРОВАНА: Сначала найдите 4 цифры",
+                startAlert1: "ПРЕДУПРЕЖДЕНИЕ: Все комнаты с отметкой [X] запечатаны.",
+                startAlert2: "• Ищите 4 цифры кода в открытых комнатах, чтобы открыть ворота.",
+                startAlert3: "• Полный код — 1 3 2 2, когда будут найдены все 4 цифры.",
+                startAlert4: "• Избегайте Существа-09. Прячьтесь в шкафчиках или бегите!",
+                ctrl1: "WASD / СТРЕЛКИ: Перемещение",
+                ctrl2: "МЫШЬ: Направление фонаря",
+                ctrl3: "SHIFT: Бег (Создает шум)",
+                ctrl4: "ПРОЙТИ ПОВЕРХ: Автоподбор цифр/батареек",
+                ctrl5: "E / ПРОБЕЛ: Спрятаться в шкафчике",
+                ctrl6: "M / TAB: Открыть карту комплекса",
+                btnStart: "ВОЙТИ В КОМПЛЕКС",
+                gameOverTitle: "СИГНАЛ ПОТЕРЯН",
+                gameOverDesc: "Жизненные показатели отсутствуют. Существо-09 не изолировано.",
+                btnRestart: "ПОВТОРИТЬ ПОПЫТКУ",
+                victoryTitle: "ЭВАКУАЦИЯ УСПЕШНА",
+                victoryDesc: "Вы успешно сбежали из Комплекса Эпсилон с уликами.",
+                lblTime: "Время побега:",
+                lblBatteries: "Собрано батареек:",
+                lblStealth: "Уровень скрытности:",
+                btnPlayAgain: "ИГРАТЬ СНОВА",
+                txtKeycodeLabel: "КОД:"
+            },
+            ar: {
+                directive: "توجيهات الأمن والسلامة",
+                objSearch: "ابحث في المنشأة عن أرقام الرمز الأربعة",
+                objComplete: "الرمز مكتمل: \"1322\" - أدخله في لوحة بوابات الخروج!",
+                codeTitle: "تم اكتشاف رمز الدخول!",
+                codeDesc: "تم العثور على جميع أرقام الرمز الأربعة داخل غرف المنشأة.",
+                codeFooter: "توجه إلى لوحة مفاتيح بوابة الإخلاء للهروب!",
+                btnResume: "إغلاق اللعبة",
+                threatChase: "خطر: مطاردة مباشرة!",
+                threatSearch: "خطر: جاري البحث عنك",
+                threatClear: "الحالة: آمن تماماً",
+                promptHide: "[E] الاختباء داخل الخزانة",
+                promptUnlocked: "تم فتح اللوحة: جاري الإخلاء...",
+                promptLocked: "اللوحة مغلقة: اجمع الأرقام الأربعة أولاً",
+                startAlert1: "تنبيه الخريطة: جميع الغرف المحددة بعلامة [X] مغلقة تماماً.",
+                startAlert2: "• ابحث في الغرف المفتوحة عن أرقام رمز بوابة الهروب الأربعة.",
+                startAlert3: "• الرمز الكامل هو 1 3 2 2 بمجرد العثور على جميع الأرقام.",
+                startAlert4: "• تجنب الكائن Entity-09. اختبئ في الخزائن أو اركض عند المطاردة!",
+                ctrl1: "WASD / الأسهم: التحرك",
+                ctrl2: "الفأرة: توجيه ضوء الكشاف",
+                ctrl3: "SHIFT: الركض (يصدر ضوضاء عالية)",
+                ctrl4: "السير فوق العنصر: جمع الأرقام والبطاريات تلقائياً",
+                ctrl5: "E / SPACE: الاختباء في الخزانة",
+                ctrl6: "M / TAB: عرض الخريطة المعمارية",
+                btnStart: "دخول المنشأة",
+                gameOverTitle: "انقطع الاتصال",
+                gameOverDesc: "توقفت العلامات الحيوية. ما زال الكائن Entity-09 طليقاً.",
+                btnRestart: "إعادة المحاولة",
+                victoryTitle: "نجح الإخلاء بنجاح",
+                victoryDesc: "لقد هربت من منشأة إبسلون بالأدلة الحيوية.",
+                lblTime: "زمن الهروب:",
+                lblBatteries: "البطاريات المجمعة:",
+                lblStealth: "تقييم التخفي:",
+                btnPlayAgain: "اللعب مرة أخرى",
+                txtKeycodeLabel: "الرمز:"
+            }
+        };
+
+        let currentLang = 'en';
+
+        const langSelectHUD = document.getElementById('langSelect');
+        const langSelectStart = document.getElementById('langSelectStart');
+
+        function onLangChange(e) {
+            currentLang = e.target.value;
+            if (langSelectHUD) langSelectHUD.value = currentLang;
+            if (langSelectStart) langSelectStart.value = currentLang;
+            applyTranslations();
+        }
+
+        if (langSelectHUD) langSelectHUD.addEventListener('change', onLangChange);
+        if (langSelectStart) langSelectStart.addEventListener('change', onLangChange);
+
+        function applyTranslations() {
+            const t = TRANSLATIONS[currentLang];
+            document.getElementById('txtDirective').innerText = t.directive;
+            if (document.getElementById('txtCodeTitle')) document.getElementById('txtCodeTitle').innerText = t.codeTitle;
+            if (document.getElementById('txtCodeDesc')) document.getElementById('txtCodeDesc').innerText = t.codeDesc;
+            if (document.getElementById('txtCodeFooter')) document.getElementById('txtCodeFooter').innerText = t.codeFooter;
+            if (document.getElementById('btnCloseCodePopup')) document.getElementById('btnCloseCodePopup').innerText = t.btnResume;
+
+            if (document.getElementById('startAlert1')) document.getElementById('startAlert1').innerHTML = `<strong class="text-red-400">BLUEPRINT ALERT:</strong> ${t.startAlert1}`;
+            if (document.getElementById('startAlert2')) document.getElementById('startAlert2').innerHTML = `• ${t.startAlert2}`;
+            if (document.getElementById('startAlert3')) document.getElementById('startAlert3').innerHTML = `• ${t.startAlert3}`;
+            if (document.getElementById('startAlert4')) document.getElementById('startAlert4').innerHTML = `• ${t.startAlert4}`;
+
+            if (document.getElementById('ctrl1')) document.getElementById('ctrl1').innerHTML = `<span class="text-red-400 font-bold">WASD / ARROWS:</span> ${t.ctrl1.split(': ')[1] || t.ctrl1}`;
+            if (document.getElementById('ctrl2')) document.getElementById('ctrl2').innerHTML = `<span class="text-red-400 font-bold">MOUSE:</span> ${t.ctrl2.split(': ')[1] || t.ctrl2}`;
+            if (document.getElementById('ctrl3')) document.getElementById('ctrl3').innerHTML = `<span class="text-red-400 font-bold">SHIFT:</span> ${t.ctrl3.split(': ')[1] || t.ctrl3}`;
+            if (document.getElementById('ctrl4')) document.getElementById('ctrl4').innerHTML = `<span class="text-red-400 font-bold">WALK OVER:</span> ${t.ctrl4.split(': ')[1] || t.ctrl4}`;
+            if (document.getElementById('ctrl5')) document.getElementById('ctrl5').innerHTML = `<span class="text-red-400 font-bold">E / SPACE:</span> ${t.ctrl5.split(': ')[1] || t.ctrl5}`;
+            if (document.getElementById('ctrl6')) document.getElementById('ctrl6').innerHTML = `<span class="text-red-400 font-bold">M / TAB:</span> ${t.ctrl6.split(': ')[1] || t.ctrl6}`;
+
+            if (document.getElementById('btnStart')) document.getElementById('btnStart').innerText = t.btnStart;
+
+            if (document.getElementById('txtGameOverTitle')) document.getElementById('txtGameOverTitle').innerText = t.gameOverTitle;
+            if (document.getElementById('txtGameOverDesc')) document.getElementById('txtGameOverDesc').innerText = t.gameOverDesc;
+            if (document.getElementById('btnRestart')) document.getElementById('btnRestart').innerText = t.btnRestart;
+
+            if (document.getElementById('txtVictoryTitle')) document.getElementById('txtVictoryTitle').innerText = t.victoryTitle;
+            if (document.getElementById('txtVictoryDesc')) document.getElementById('txtVictoryDesc').innerText = t.victoryDesc;
+            if (document.getElementById('lblTime')) document.getElementById('lblTime').innerText = t.lblTime;
+            if (document.getElementById('lblBatteries')) document.getElementById('lblBatteries').innerText = t.lblBatteries;
+            if (document.getElementById('lblStealth')) document.getElementById('lblStealth').innerText = t.lblStealth;
+            if (document.getElementById('btnPlayAgain')) document.getElementById('btnPlayAgain').innerText = t.btnPlayAgain;
+            if (document.getElementById('txtKeycode')) document.getElementById('txtKeycode').innerText = t.txtKeycodeLabel;
+
+            updateDigitsUI();
+        }
+
+        /**
+         * CONTROLS & EVENT LISTENERS
+         */
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+
+            if (e.key.toLowerCase() === 'f' && gameState === 'PLAYING') {
+                player.flashlightOn = !player.flashlightOn;
+                audio.playFlashlightClick();
+            }
+
+            if ((e.key.toLowerCase() === 'm' || e.key === 'Tab') && (gameState === 'PLAYING' || gameState === 'HIDING')) {
+                e.preventDefault();
+                const mapModal = document.getElementById('mapModal');
+                mapModal.classList.toggle('hidden');
+                if (!mapModal.classList.contains('hidden')) {
+                    drawLargeBlueprintMap();
+                }
+            }
+
+            if ((e.key.toLowerCase() === 'e' || e.key === ' ') && gameState === 'PLAYING') {
+                checkInteractions();
+            } else if ((e.key.toLowerCase() === 'e' || e.key === ' ') && gameState === 'HIDING') {
+                exitHiding();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mousePos.x = e.clientX;
+            mousePos.y = e.clientY;
+        });
+
+        /**
+         * MAP COLLISION LOGIC
+         */
+        function isWalkable(x, y, radius = 18) {
+            const tx = x / TILE_SIZE;
+            const ty = y / TILE_SIZE;
+
+            for (let b of FACILITY_MAP.blockedZones) {
+                if (tx >= b.x && tx <= b.x + b.w && ty >= b.y && ty <= b.y + b.h) {
+                    return false;
+                }
+            }
+
+            for (let w of FACILITY_MAP.walkableZones) {
+                if (tx >= w.x && tx <= w.x + w.w && ty >= w.y && ty <= w.y + w.h) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * INTERACTION & AUTO-COLLECT
+         */
+        function checkInteractions() {
+            for (let locker of FACILITY_MAP.lockers) {
+                const dist = Math.hypot(player.x - locker.x, player.y - locker.y);
+                if (dist < 60) {
+                    gameState = 'HIDING';
+                    player.isHiding = true;
+                    document.getElementById('hidingUI').classList.remove('hidden');
+                    return;
+                }
+            }
+        }
+
+        function checkAutoPickups() {
+            if (player.isHiding) return;
+
+            for (let item of FACILITY_MAP.items) {
+                if (item.collected) continue;
+                const dist = Math.hypot(player.x - item.x, player.y - item.y);
+                if (dist < 48) {
+                    item.collected = true;
+                    audio.playPickup();
+                    if (item.type === 'digit') {
+                        player.collectedDigits.push(item.value);
+                        updateDigitsUI();
+
+                        if (player.collectedDigits.length >= 4) {
+                            showCodePopup();
+                        }
+                    } else if (item.type === 'battery') {
+                        player.battery = Math.min(100, player.battery + 50);
+                        player.batteriesCollected++;
+                    }
+                }
+            }
+
+            const gate = FACILITY_MAP.exitGate;
+            const distToGate = Math.hypot(player.x - (gate.x + gate.w/2), player.y - (gate.y + gate.h/2));
+            if (distToGate < 80 && player.collectedDigits.length >= 4) {
+                triggerVictory();
+            }
+        }
+
+        function showCodePopup() {
+            gameState = 'PAUSED';
+            const popup = document.getElementById('codePopup');
+            if (popup) popup.classList.remove('hidden');
+        }
+
+        function exitHiding() {
+            gameState = 'PLAYING';
+            player.isHiding = false;
+            document.getElementById('hidingUI').classList.add('hidden');
+        }
+
+        function updateDigitsUI() {
+            const t = TRANSLATIONS[currentLang];
+            for (let i = 1; i <= 4; i++) {
+                const slot = document.getElementById(`digit${i}`);
+                if (i <= player.collectedDigits.length) {
+                    slot.innerText = player.collectedDigits[i - 1];
+                    slot.classList.remove('text-gray-600', 'bg-black/60');
+                    slot.classList.add('text-yellow-400', 'bg-yellow-950/80', 'border-yellow-500', 'shadow-[0_0_10px_rgba(250,204,21,0.5)]');
+                }
+            }
+            const obj = document.getElementById('objectiveText');
+            if (player.collectedDigits.length < 4) {
+                obj.innerText = `${t.objSearch} [${player.collectedDigits.length}/4]`;
+            } else {
+                obj.innerText = t.objComplete;
+                obj.classList.remove('text-gray-200');
+                obj.classList.add('text-emerald-400', 'animate-pulse');
+            }
+        }
+
+        /**
+         * ENTITY & PLAYER LOGIC
+         */
+        function updatePlayer() {
+            if (gameState !== 'PLAYING') return;
+
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['w'] || keys['arrowup']) moveY -= 1;
+            if (keys['s'] || keys['arrowdown']) moveY += 1;
+            if (keys['a'] || keys['arrowleft']) moveX -= 1;
+            if (keys['d'] || keys['arrowright']) moveX += 1;
+
+            const wantsSprint = keys['shift'] && (moveX !== 0 || moveY !== 0) && player.stamina > 5;
+            player.isSprinting = wantsSprint;
+
+            const currentSpeed = wantsSprint ? player.sprintSpeed : player.speed;
+
+            if (wantsSprint) {
+                player.stamina = Math.max(0, player.stamina - 0.65);
+                player.noiseLevel = 2;
+            } else {
+                player.stamina = Math.min(100, player.stamina + 0.4);
+                player.noiseLevel = (moveX !== 0 || moveY !== 0) ? 1 : 0;
+            }
+
+            if (player.flashlightOn) {
+                player.battery = Math.max(0, player.battery - 0.03);
+                if (player.battery <= 0) player.flashlightOn = false;
+            }
+
+            if (moveX !== 0 && moveY !== 0) {
+                moveX *= 0.7071;
+                moveY *= 0.7071;
+            }
+
+            const nextX = player.x + moveX * currentSpeed;
+            const nextY = player.y + moveY * currentSpeed;
+
+            if (isWalkable(nextX, player.y, player.radius)) player.x = nextX;
+            if (isWalkable(player.x, nextY, player.radius)) player.y = nextY;
+
+            checkAutoPickups();
+
+            const screenCenterX = canvas.width / 2;
+            const screenCenterY = canvas.height / 2;
+            player.angle = Math.atan2(mousePos.y - screenCenterY, mousePos.x - screenCenterX);
+
+            if ((moveX !== 0 || moveY !== 0) && Math.random() < (wantsSprint ? 0.22 : 0.09)) {
+                audio.playFootstep(wantsSprint);
+            }
+
+            updateActionPrompts();
+        }
+
+        function updateActionPrompts() {
+            const promptEl = document.getElementById('actionPrompt');
+            const t = TRANSLATIONS[currentLang];
+            let near = false;
+
+            for (let locker of FACILITY_MAP.lockers) {
+                if (Math.hypot(player.x - locker.x, player.y - locker.y) < 60) {
+                    promptEl.innerText = t.promptHide;
+                    promptEl.classList.remove('hidden');
+                    near = true;
+                    break;
+                }
+            }
+
+            if (!near) {
+                const gate = FACILITY_MAP.exitGate;
+                if (Math.hypot(player.x - (gate.x + gate.w/2), player.y - (gate.y + gate.h/2)) < 90) {
+                    promptEl.innerText = player.collectedDigits.length >= 4 ? t.promptUnlocked : t.promptLocked;
+                    promptEl.classList.remove('hidden');
+                    near = true;
+                }
+            }
+
+            if (!near) promptEl.classList.add('hidden');
+        }
+
+        function updateMonster() {
+            if (gameState === 'GAMEOVER' || gameState === 'VICTORY' || gameState === 'PAUSED') return;
+
+            const distToPlayer = Math.hypot(monster.x - player.x, monster.y - player.y);
+
+            if (distToPlayer < 600) {
+                const ratio = distToPlayer / 600;
+                audio.playHeartbeat(ratio);
+                document.getElementById('screenFx').classList.add('heartbeat-pulse');
+            } else {
+                document.getElementById('screenFx').classList.remove('heartbeat-pulse');
+            }
+
+            let canSeePlayer = false;
+            if (!player.isHiding && distToPlayer < (player.flashlightOn ? 450 : 260)) {
+                canSeePlayer = true;
+            }
+
+            if (!player.isHiding && player.noiseLevel === 2 && distToPlayer < 550) {
+                monster.state = 'INVESTIGATE';
+                monster.investigatePos = { x: player.x, y: player.y };
+            }
+
+            if (canSeePlayer) {
+                monster.state = 'CHASE';
+            } else if (monster.state === 'CHASE') {
+                monster.state = 'INVESTIGATE';
+                monster.investigatePos = { x: player.x, y: player.y };
+            }
+
+            const threatEl = document.getElementById('threatStatus');
+            const t = TRANSLATIONS[currentLang];
+            if (monster.state === 'CHASE') {
+                threatEl.innerText = t.threatChase;
+                threatEl.className = "text-red-500 font-bold animate-pulse";
+            } else if (monster.state === 'INVESTIGATE') {
+                threatEl.innerText = t.threatSearch;
+                threatEl.className = "text-yellow-400 font-bold";
+            } else {
+                threatEl.innerText = t.threatClear;
+                threatEl.className = "text-emerald-400 font-bold";
+            }
+
+            let targetX, targetY, speed;
+
+            if (monster.state === 'CHASE') {
+                targetX = player.x;
+                targetY = player.y;
+                speed = monster.chaseSpeed;
+            } else if (monster.state === 'INVESTIGATE' && monster.investigatePos) {
+                targetX = monster.investigatePos.x;
+                targetY = monster.investigatePos.y;
+                speed = monster.speed;
+
+                if (Math.hypot(monster.x - targetX, monster.y - targetY) < 30) {
+                    monster.state = 'PATROL';
+                }
+            } else {
+                const wp = monster.waypoints[monster.targetWaypoint];
+                targetX = wp.x;
+                targetY = wp.y;
+                speed = monster.speed;
+
+                if (Math.hypot(monster.x - targetX, monster.y - targetY) < 30) {
+                    monster.targetWaypoint = (monster.targetWaypoint + 1) % monster.waypoints.length;
+                }
+            }
+
+            const angle = Math.atan2(targetY - monster.y, targetX - monster.x);
+            monster.angle = angle;
+
+            const nextX = monster.x + Math.cos(angle) * speed;
+            const nextY = monster.y + Math.sin(angle) * speed;
+
+            if (isWalkable(nextX, monster.y, monster.radius)) monster.x = nextX;
+            if (isWalkable(monster.x, nextY, monster.radius)) monster.y = nextY;
+
+            if (!player.isHiding && distToPlayer < (monster.radius + player.radius)) {
+                triggerGameOver();
+            }
+        }
+
+        /**
+         * RENDER ENGINE WITH DETAILED TOP-DOWN PERSPECTIVE
+         */
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const cameraX = canvas.width / 2 - player.x;
+            const cameraY = canvas.height / 2 - player.y;
+
+            // Pitch dark background
+            ctx.fillStyle = "#020307";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(cameraX, cameraY);
+
+            // Clip rendering to flashlight vision cone & surrounding ambient area
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, 80, 0, Math.PI * 2);
+
+            if (player.flashlightOn && !player.isHiding) {
+                const coneAngle = Math.PI / 2.6;
+                const flashDistance = 620 * (player.battery / 100);
+
+                ctx.moveTo(player.x, player.y);
+                ctx.arc(
+                    player.x,
+                    player.y,
+                    flashDistance,
+                    player.angle - coneAngle / 2,
+                    player.angle + coneAngle / 2,
+                    false
+                );
+            }
+            ctx.clip();
+
+            // Draw Walkable Facility Corridors
+            drawFacilityLayout();
+
+            // Draw Lockers, Keycode Digits and Items
+            drawItemsAndLockers();
+
+            // Draw Extraction Gate
+            drawExitGate();
+
+            // Draw Monster & Player Sprites
+            drawMonster();
+            drawPlayer();
+
+            ctx.restore();
+
+            // Volumetric Lighting Effect
+            drawDynamicLighting(cameraX, cameraY);
+
+            // Minimap HUD
+            drawMinimap();
+        }
+
+        function drawFacilityLayout() {
+            // Render Walkable Zones with Metallic Floor Tiles
+            for (let w of FACILITY_MAP.walkableZones) {
+                const rx = w.x * TILE_SIZE;
+                const ry = w.y * TILE_SIZE;
+                const rw = w.w * TILE_SIZE;
+                const rh = w.h * TILE_SIZE;
+
+                const floorGrad = ctx.createLinearGradient(rx, ry, rx + rw, ry + rh);
+                floorGrad.addColorStop(0, "#0b1329");
+                floorGrad.addColorStop(0.5, "#0f172a");
+                floorGrad.addColorStop(1, "#070d1e");
+
+                ctx.fillStyle = floorGrad;
+                ctx.fillRect(rx, ry, rw, rh);
+
+                // Grid Tiles
+                ctx.strokeStyle = "rgba(51, 65, 85, 0.6)";
+                ctx.lineWidth = 1.5;
+                for (let x = rx; x < rx + rw; x += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, ry);
+                    ctx.lineTo(x, ry + rh);
+                    ctx.stroke();
+                }
+                for (let y = ry; y < ry + rh; y += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(rx, y);
+                    ctx.lineTo(rx + rw, y);
+                    ctx.stroke();
+                }
+
+                // Corridor Wall Outlines
+                ctx.strokeStyle = "#2563eb";
+                ctx.lineWidth = 5;
+                ctx.strokeRect(rx, ry, rw, rh);
+            }
+
+            // Render Blocked [X] Chambers
+            for (let b of FACILITY_MAP.blockedZones) {
+                const rx = b.x * TILE_SIZE;
+                const ry = b.y * TILE_SIZE;
+                const rw = b.w * TILE_SIZE;
+                const rh = b.h * TILE_SIZE;
+
+                const blockGrad = ctx.createLinearGradient(rx, ry, rx + rw, ry + rh);
+                blockGrad.addColorStop(0, "#3f0707");
+                blockGrad.addColorStop(1, "#180303");
+
+                ctx.fillStyle = blockGrad;
+                ctx.fillRect(rx, ry, rw, rh);
+                ctx.strokeStyle = "#b91c1c";
+                ctx.lineWidth = 4;
+                ctx.strokeRect(rx, ry, rw, rh);
+
+                // Red Danger Cross
+                ctx.shadowColor = "#ef4444";
+                ctx.shadowBlur = 12;
+                ctx.strokeStyle = "#dc2626";
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(rx + 12, ry + 12);
+                ctx.lineTo(rx + rw - 12, ry + rh - 12);
+                ctx.moveTo(rx + rw - 12, ry + 12);
+                ctx.lineTo(rx + 12, ry + rh - 12);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Dead End Text Warning
+            ctx.shadowColor = "#ef4444";
+            ctx.shadowBlur = 14;
+            ctx.fillStyle = "#f87171";
+            ctx.font = "900 24px 'Orbitron', sans-serif";
+            ctx.fillText("--> DEAD END", 8.8 * TILE_SIZE, 10.35 * TILE_SIZE);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawItemsAndLockers() {
+            // Lockers
+            for (let locker of FACILITY_MAP.lockers) {
+                ctx.fillStyle = "#1e293b";
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 3;
+                ctx.fillRect(locker.x - 24, locker.y - 24, 48, 48);
+                ctx.strokeRect(locker.x - 24, locker.y - 24, 48, 48);
+
+                ctx.fillStyle = "#0284c7";
+                ctx.fillRect(locker.x - 18, locker.y - 18, 36, 36);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 12px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("LOCKER", locker.x, locker.y + 4);
+            }
+
+            // Keycode Digits & Batteries
+            for (let item of FACILITY_MAP.items) {
+                if (item.collected) continue;
+
+                ctx.save();
+                ctx.translate(item.x, item.y);
+
+                if (item.type === 'digit') {
+                    ctx.shadowColor = "#facc15";
+                    ctx.shadowBlur = 20;
+                    ctx.fillStyle = "#facc15";
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 18 + Math.sin(Date.now() / 150) * 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = "#000000";
+                    ctx.font = "900 20px 'Orbitron', sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(item.value, 0, 0);
+                } else if (item.type === 'battery') {
+                    ctx.shadowColor = "#38bdf8";
+                    ctx.shadowBlur = 16;
+                    ctx.fillStyle = "#0284c7";
+                    ctx.fillRect(-12, -16, 24, 32);
+                    ctx.fillStyle = "#38bdf8";
+                    ctx.fillRect(-7, -12, 14, 24);
+                }
+                ctx.restore();
+            }
+        }
+
+        function drawExitGate() {
+            const gate = FACILITY_MAP.exitGate;
+            const isUnlocked = player.collectedDigits.length >= 4;
+
+            ctx.shadowColor = isUnlocked ? "#10b981" : "#ef4444";
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = isUnlocked ? "rgba(16, 185, 129, 0.4)" : "rgba(239, 68, 68, 0.4)";
+            ctx.strokeStyle = isUnlocked ? "#10b981" : "#dc2626";
+            ctx.lineWidth = 5;
+
+            ctx.fillRect(gate.x, gate.y, gate.w, gate.h);
+            ctx.strokeRect(gate.x, gate.y, gate.w, gate.h);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 16px 'Orbitron', sans-serif";
+            ctx.fillText(isUnlocked ? "KEYPAD [CODE: 1322]" : "EXTRACTION KEYPAD", gate.x - 10, gate.y - 15);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawPlayer() {
+            if (player.isHiding) return;
+
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            ctx.shadowColor = "#38bdf8";
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = "#0284c7";
+            ctx.beginPath();
+            ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "#e0f2fe";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Flashlight Barrel
+            ctx.fillStyle = "#facc15";
+            ctx.fillRect(4, -6, 24, 12);
+
+            ctx.restore();
+        }
+
+        function drawMonster() {
+            ctx.save();
+            ctx.translate(monster.x, monster.y);
+            ctx.rotate(monster.angle);
+
+            ctx.shadowColor = "#dc2626";
+            ctx.shadowBlur = monster.state === 'CHASE' ? 30 : 15;
+
+            ctx.fillStyle = "#7f1d1d";
+            ctx.beginPath();
+            ctx.arc(0, 0, monster.radius + 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.arc(0, 0, monster.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glowing Eyes
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.arc(12, -8, 4, 0, Math.PI * 2);
+            ctx.arc(12, 8, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawDynamicLighting(camX, camY) {
+            ctx.save();
+
+            if (player.flashlightOn && !player.isHiding) {
+                const screenPx = player.x + camX;
+                const screenPy = player.y + camY;
+
+                const coneAngle = Math.PI / 2.6;
+                const flashDistance = 620 * (player.battery / 100);
+
+                const grad = ctx.createRadialGradient(screenPx, screenPy, 30, screenPx, screenPy, flashDistance);
+                grad.addColorStop(0, "rgba(254, 240, 138, 0.32)");
+                grad.addColorStop(0.6, "rgba(250, 204, 21, 0.1)");
+                grad.addColorStop(1, "transparent");
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(screenPx, screenPy);
+                ctx.arc(
+                    screenPx,
+                    screenPy,
+                    flashDistance,
+                    player.angle - coneAngle / 2,
+                    player.angle + coneAngle / 2
+                );
+                ctx.closePath();
+                ctx.fill();
+
+                for (let p of particles) {
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+                    if (p.x < 0) p.x = canvas.width;
+                    if (p.x > canvas.width) p.x = 0;
+                    if (p.y < 0) p.y = canvas.height;
+                    if (p.y > canvas.height) p.y = 0;
+
+                    ctx.fillStyle = `rgba(250, 204, 21, ${p.alpha * 0.7})`;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * ARCHITECTURAL MAP MODAL
+         */
+        function drawLargeBlueprintMap() {
+            lCtx.clearRect(0, 0, largeMapCanvas.width, largeMapCanvas.height);
+
+            const scale = 0.24;
+
+            lCtx.fillStyle = "#020617";
+            lCtx.fillRect(0, 0, largeMapCanvas.width, largeMapCanvas.height);
+
+            lCtx.fillStyle = "#0f172a";
+            lCtx.strokeStyle = "#38bdf8";
+            lCtx.lineWidth = 2;
+
+            for (let w of FACILITY_MAP.walkableZones) {
+                const rx = w.x * TILE_SIZE * scale;
+                const ry = w.y * TILE_SIZE * scale;
+                const rw = w.w * TILE_SIZE * scale;
+                const rh = w.h * TILE_SIZE * scale;
+
+                lCtx.fillRect(rx, ry, rw, rh);
+                lCtx.strokeRect(rx, ry, rw, rh);
+            }
+
+            for (let b of FACILITY_MAP.blockedZones) {
+                const rx = b.x * TILE_SIZE * scale;
+                const ry = b.y * TILE_SIZE * scale;
+                const rw = b.w * TILE_SIZE * scale;
+                const rh = b.h * TILE_SIZE * scale;
+
+                lCtx.fillStyle = "#450a0a";
+                lCtx.fillRect(rx, ry, rw, rh);
+                lCtx.strokeStyle = "#dc2626";
+                lCtx.strokeRect(rx, ry, rw, rh);
+
+                lCtx.strokeStyle = "#ef4444";
+                lCtx.lineWidth = 2;
+                lCtx.beginPath();
+                lCtx.moveTo(rx + 4, ry + 4);
+                lCtx.lineTo(rx + rw - 4, ry + rh - 4);
+                lCtx.moveTo(rx + rw - 4, ry + 4);
+                lCtx.lineTo(rx + 4, ry + rh - 4);
+                lCtx.stroke();
+            }
+
+            for (let item of FACILITY_MAP.items) {
+                if (item.collected) continue;
+                lCtx.fillStyle = item.type === 'digit' ? "#facc15" : "#38bdf8";
+                lCtx.beginPath();
+                lCtx.arc(item.x * scale, item.y * scale, 5, 0, Math.PI * 2);
+                lCtx.fill();
+            }
+
+            const gate = FACILITY_MAP.exitGate;
+            lCtx.fillStyle = player.collectedDigits.length >= 4 ? "#10b981" : "#a855f7";
+            lCtx.fillRect(gate.x * scale, gate.y * scale, gate.w * scale, gate.h * scale);
+
+            lCtx.fillStyle = "#38bdf8";
+            lCtx.shadowColor = "#38bdf8";
+            lCtx.shadowBlur = 8;
+            lCtx.beginPath();
+            lCtx.arc(player.x * scale, player.y * scale, 6, 0, Math.PI * 2);
+            lCtx.fill();
+            lCtx.shadowBlur = 0;
+        }
+
+        /**
+         * MINIMAP OVERLAY
+         */
+        function drawMinimap() {
+            mCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            const scale = 0.08;
+            mCtx.save();
+            mCtx.translate(
+                minimapCanvas.width / 2 - player.x * scale,
+                minimapCanvas.height / 2 - player.y * scale
+            );
+
+            mCtx.fillStyle = "#020617";
+            mCtx.fillRect(0, 0, MAP_TILES_X * TILE_SIZE * scale, MAP_TILES_Y * TILE_SIZE * scale);
+
+            mCtx.fillStyle = "#1e293b";
+            for (let w of FACILITY_MAP.walkableZones) {
+                mCtx.fillRect(w.x * TILE_SIZE * scale, w.y * TILE_SIZE * scale, w.w * TILE_SIZE * scale, w.h * TILE_SIZE * scale);
+            }
+
+            mCtx.fillStyle = "#7f1d1d";
+            for (let b of FACILITY_MAP.blockedZones) {
+                mCtx.fillRect(b.x * TILE_SIZE * scale, b.y * TILE_SIZE * scale, b.w * TILE_SIZE * scale, b.h * TILE_SIZE * scale);
+            }
+
+            for (let item of FACILITY_MAP.items) {
+                if (item.collected) continue;
+                mCtx.fillStyle = item.type === 'digit' ? "#facc15" : "#38bdf8";
+                mCtx.beginPath();
+                mCtx.arc(item.x * scale, item.y * scale, 3, 0, Math.PI * 2);
+                mCtx.fill();
+            }
+
+            mCtx.fillStyle = "#38bdf8";
+            mCtx.beginPath();
+            mCtx.arc(player.x * scale, player.y * scale, 4, 0, Math.PI * 2);
+            mCtx.fill();
+
+            if (monster.state === 'CHASE') {
+                mCtx.fillStyle = "#ef4444";
+                mCtx.beginPath();
+                mCtx.arc(monster.x * scale, monster.y * scale, 4, 0, Math.PI * 2);
+                mCtx.fill();
+            }
+
+            mCtx.restore();
+        }
+
+        /**
+         * HUD STATS UPDATE
+         */
+        function updateHUD() {
+            document.getElementById('staminaBar').style.width = `${player.stamina}%`;
+            document.getElementById('staminaVal').innerText = `${Math.round(player.stamina)}%`;
+
+            document.getElementById('batteryBar').style.width = `${player.battery}%`;
+            document.getElementById('batteryVal').innerText = `${Math.round(player.battery)}%`;
+
+            document.getElementById('healthBar').style.width = `${player.health}%`;
+            document.getElementById('healthVal').innerText = `${Math.round(player.health)}%`;
+
+            const noiseIcon = document.getElementById('noiseIcon');
+            const noiseText = document.getElementById('noiseText');
+
+            if (player.noiseLevel === 2) {
+                noiseIcon.className = "fa-solid fa-volume-high text-red-500 text-2xl animate-bounce";
+                noiseText.innerText = "LOUD (SPRINTING)";
+                noiseText.className = "text-xs font-bold text-red-500";
+            } else if (player.noiseLevel === 1) {
+                noiseIcon.className = "fa-solid fa-volume-low text-yellow-400 text-2xl";
+                noiseText.innerText = "WALKING";
+                noiseText.className = "text-xs font-bold text-yellow-400";
+            } else {
+                noiseIcon.className = "fa-solid fa-volume-off text-gray-500 text-2xl";
+                noiseText.innerText = "SILENT";
+                noiseText.className = "text-xs font-bold text-gray-300";
+            }
+        }
+
+        /**
+         * GAME FLOW HANDLERS
+         */
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        function triggerVictory() {
+            gameState = 'VICTORY';
+            totalTime = Math.floor((Date.now() - startTime) / 1000);
+
+            const mins = Math.floor(totalTime / 60).toString().padStart(2, '0');
+            const secs = (totalTime % 60).toString().padStart(2, '0');
+
+            document.getElementById('statTime').innerText = `${mins}:${secs}`;
+            document.getElementById('statBatteries').innerText = player.batteriesCollected;
+            document.getElementById('victoryScreen').classList.remove('hidden');
+        }
+
+        function resetGame() {
+            player.x = 6.5 * TILE_SIZE;
+            player.y = 2.5 * TILE_SIZE;
+            player.stamina = 100;
+            player.battery = 100;
+            player.collectedDigits = [];
+            player.batteriesCollected = 0;
+            player.isHiding = false;
+
+            monster.x = 25 * TILE_SIZE;
+            monster.y = 24 * TILE_SIZE;
+            monster.state = 'PATROL';
+
+            for (let item of FACILITY_MAP.items) {
+                item.collected = false;
+            }
+
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('victoryScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('codePopup').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+
+            audio.init();
+            startTime = Date.now();
+            updateDigitsUI();
+            gameState = 'PLAYING';
+        }
+
+        function setupEventListeners() {
+            const btnStart = document.getElementById('btnStart');
+            if (btnStart) btnStart.addEventListener('click', resetGame);
+
+            const btnRestart = document.getElementById('btnRestart');
+            if (btnRestart) btnRestart.addEventListener('click', resetGame);
+
+            const btnPlayAgain = document.getElementById('btnPlayAgain');
+            if (btnPlayAgain) btnPlayAgain.addEventListener('click', resetGame);
+
+            const btnCloseCodePopup = document.getElementById('btnCloseCodePopup');
+            if (btnCloseCodePopup) {
+                btnCloseCodePopup.addEventListener('click', () => {
+                    const popup = document.getElementById('codePopup');
+                    if (popup) popup.classList.add('hidden');
+                    triggerVictory();
+                });
+            }
+
+            const musicBtn = document.getElementById('btnToggleMusic');
+            if (musicBtn) {
+                musicBtn.addEventListener('click', () => {
+                    audio.init();
+                    audio.toggleMusic();
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupEventListeners);
+        } else {
+            setupEventListeners();
+        }
+
+        /**
+         * MAIN GAME LOOP
+         */
+        function gameLoop() {
+            if (gameState === 'PLAYING') {
+                updatePlayer();
+                updateMonster();
+                updateHUD();
+            } else if (gameState === 'HIDING') {
+                updateMonster();
+                updateHUD();
+            }
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
