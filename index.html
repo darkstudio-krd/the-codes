@@ -260,7 +260,7 @@
                 <option value="fr">Français (FR)</option>
                 <option value="es">Español (ES)</option>
             </select>
-            <button id="musicToggleBtn" class="hud-btn">MUSIC: OFF</button>
+            <button id="musicToggleBtn" class="hud-btn" style="border-color: #00ffcc; color: #00ffcc;">MUSIC: ON</button>
         </div>
 
         <!-- HUD: Bottom Status -->
@@ -360,8 +360,26 @@
             } catch(e) {}
         }
 
-        // Music Toggle
+        // Auto-play Music on load & interaction unlock
         let musicPlaying = false;
+        function startMusic() {
+            if (!musicPlaying) {
+                bgMusic.play().then(() => {
+                    musicPlaying = true;
+                    musicToggleBtn.innerText = "MUSIC: ON";
+                    musicToggleBtn.style.borderColor = "#00ffcc";
+                    musicToggleBtn.style.color = "#00ffcc";
+                }).catch(err => {
+                    console.log("Autoplay waiting for user interaction");
+                });
+            }
+        }
+
+        // Try playing immediately on load
+        window.addEventListener('load', startMusic);
+        // Also unlock on first click/touch anywhere on page
+        window.addEventListener('pointerdown', startMusic, { once: true });
+
         musicToggleBtn.addEventListener('click', () => {
             if (!musicPlaying) {
                 bgMusic.play().then(() => {
@@ -369,7 +387,7 @@
                     musicToggleBtn.innerText = "MUSIC: ON";
                     musicToggleBtn.style.borderColor = "#00ffcc";
                     musicToggleBtn.style.color = "#00ffcc";
-                }).catch(err => console.log("Audio play blocked", err));
+                });
             } else {
                 bgMusic.pause();
                 musicPlaying = false;
@@ -379,7 +397,7 @@
             }
         });
 
-        // Game Configuration & Map Layout (Wall removed above lower-middle data point)
+        // Game Configuration & Map Layout
         const TILE_SIZE = 64;
         const map = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -433,6 +451,7 @@
         const touchState = { up: false, down: false, left: false, right: false };
 
         window.addEventListener('keydown', (e) => {
+            startMusic();
             if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') keys.w = true;
             if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') keys.s = true;
             if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.a = true;
@@ -449,9 +468,9 @@
         function bindTouchButton(id, stateKey) {
             const btn = document.getElementById(id);
             if (!btn) return;
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); touchState[stateKey] = true; btn.classList.add('pressed'); });
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); startMusic(); touchState[stateKey] = true; btn.classList.add('pressed'); });
             btn.addEventListener('touchend', (e) => { e.preventDefault(); touchState[stateKey] = false; btn.classList.remove('pressed'); });
-            btn.addEventListener('mousedown', (e) => { e.preventDefault(); touchState[stateKey] = true; btn.classList.add('pressed'); });
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); startMusic(); touchState[stateKey] = true; btn.classList.add('pressed'); });
             btn.addEventListener('mouseup', (e) => { e.preventDefault(); touchState[stateKey] = false; btn.classList.remove('pressed'); });
         }
         bindTouchButton('btnUp', 'up');
