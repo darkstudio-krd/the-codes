@@ -28,7 +28,7 @@
         }
         canvas {
             display: block;
-            background: #12151f;
+            background: #141824;
         }
         /* HUD Overlays */
         .hud-panel {
@@ -385,12 +385,12 @@
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
             [1,0,0,0,1,2,2,2,1,0,0,0,0,0,1,0,0,0,0,1],
             [1,0,1,0,1,2,2,2,1,0,1,1,1,0,1,0,1,1,0,1],
-            [1,0,1,0,1,1,1,1,1,0,1,3,1,0,1,0,1,3,0,1],
+            [1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,0,1,0,0,1],
             [1,0,1,0,0,0,0,0,0,0,1,1,1,0,1,0,1,1,0,1],
             [1,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1],
             [1,0,0,0,0,0,0,0,0,0,1,0,1,1,1,1,1,1,0,1],
-            [1,1,1,1,2,2,1,1,1,0,1,0,1,3,1,2,2,1,0,1],
-            [1,0,0,0,2,2,1,3,1,0,0,0,1,0,1,2,2,1,0,1],
+            [1,1,1,1,2,2,1,1,1,0,1,0,1,0,1,2,2,1,0,1],
+            [1,0,0,0,2,2,1,0,1,0,0,0,1,0,1,2,2,1,0,1],
             [1,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1],
             [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
@@ -417,11 +417,12 @@
             battery: 100
         };
 
+        // All 4 code fragments placed securely in open, reachable hallways (tile 0)
         const codeFragments = [
             { id: 0, x: TILE_SIZE * 11.5, y: TILE_SIZE * 3.5, digit: '1', collected: false },
             { id: 1, x: TILE_SIZE * 13.5, y: TILE_SIZE * 7.5, digit: '3', collected: false },
             { id: 2, x: TILE_SIZE * 7.5, y: TILE_SIZE * 8.5, digit: '2', collected: false },
-            { id: 3, x: TILE_SIZE * 1.5, y: TILE_SIZE * 10.5, digit: '2', collected: false }
+            { id: 3, x: TILE_SIZE * 3.5, y: TILE_SIZE * 10.5, digit: '2', collected: false }
         ];
 
         const targetCode = ['1', '3', '2', '2'];
@@ -459,13 +460,6 @@
         bindTouchButton('btnLeft', 'left');
         bindTouchButton('btnRight', 'right');
 
-        let mouseX = window.innerWidth / 2;
-        let mouseY = window.innerHeight / 2;
-        window.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
-
         function checkCollision(x, y) {
             const checkRadius = 10;
             const corners = [
@@ -498,6 +492,10 @@
             if (keys.a || touchState.left) dx -= player.speed;
             if (keys.d || touchState.right) dx += player.speed;
 
+            if (dx !== 0 || dy !== 0) {
+                player.angle = Math.atan2(dy, dx);
+            }
+
             if (dx !== 0 && dy !== 0) {
                 dx *= 0.7071;
                 dy *= 0.7071;
@@ -509,10 +507,6 @@
             if (!checkCollision(player.x, player.y + dy)) {
                 player.y += dy;
             }
-
-            const screenCenterX = canvas.width / 2;
-            const screenCenterY = canvas.height / 2;
-            player.angle = Math.atan2(mouseY - screenCenterY, mouseX - screenCenterX);
 
             codeFragments.forEach(frag => {
                 if (!frag.collected) {
@@ -551,7 +545,7 @@
             ctx.save();
             ctx.translate(screenCenterX - player.x, screenCenterY - player.y);
 
-            // 1. Draw Facility Floor & Walls (Brighter textures)
+            // 1. Draw Facility Floor & Walls
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     const tile = map[r][c];
@@ -559,18 +553,18 @@
                     const y = r * TILE_SIZE;
 
                     if (tile === 0) {
-                        ctx.fillStyle = '#1c202d';
+                        ctx.fillStyle = '#1c2230';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        ctx.strokeStyle = '#282f42';
+                        ctx.strokeStyle = '#2b354a';
                         ctx.lineWidth = 1;
                         ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
                     } else if (tile === 1) {
-                        ctx.fillStyle = '#323b52';
+                        ctx.fillStyle = '#3a4663';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        ctx.fillStyle = '#212736';
+                        ctx.fillStyle = '#222b3d';
                         ctx.fillRect(x + 4, y + 4, TILE_SIZE - 8, TILE_SIZE - 8);
                     } else if (tile === 2) {
-                        ctx.fillStyle = '#381c20';
+                        ctx.fillStyle = '#4a2228';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
                         ctx.strokeStyle = '#ff4444';
                         ctx.lineWidth = 2;
@@ -591,13 +585,13 @@
                     ctx.shadowBlur = 15;
                     ctx.fillStyle = '#00ffcc';
                     ctx.beginPath();
-                    ctx.arc(frag.x, frag.y, 12, 0, Math.PI * 2);
+                    ctx.arc(frag.x, frag.y, 14, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 13px Courier New';
+                    ctx.font = 'bold 14px Courier New';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('[DATA]', frag.x, frag.y - 20);
+                    ctx.fillText('[DATA]', frag.x, frag.y - 22);
                     ctx.restore();
                 }
             });
@@ -610,39 +604,13 @@
             ctx.shadowColor = '#00ffcc';
             ctx.shadowBlur = 12;
             ctx.beginPath();
-            ctx.arc(0, 0, 14, 0, Math.PI * 2);
+            ctx.arc(0, 0, 16, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = '#333';
-            ctx.fillRect(-10, -6, 20, 6);
+            ctx.fillStyle = '#222';
+            ctx.fillRect(-12, -8, 24, 8);
             ctx.restore();
 
             ctx.restore(); // Restore camera matrix
-
-            // 4. Much Brighter Lighting & Wider Flashlight Cone
-            ctx.save();
-            ctx.fillStyle = 'rgba(2, 2, 5, 0.7)'; // Much lighter darkness overlay
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.globalCompositeOperation = 'destination-out';
-            const gradient = ctx.createRadialGradient(screenCenterX, screenCenterY, 80, screenCenterX, screenCenterY, 600);
-            gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-            gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.7)');
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(screenCenterX, screenCenterY, 600, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Wide Flashlight Beam Cone
-            ctx.beginPath();
-            ctx.moveTo(screenCenterX, screenCenterY);
-            ctx.arc(screenCenterX, screenCenterY, 700, player.angle - 0.7, player.angle + 0.7);
-            ctx.lineTo(screenCenterX, screenCenterY);
-            ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-            ctx.fill();
-
-            ctx.restore();
         }
 
         function loop() {
