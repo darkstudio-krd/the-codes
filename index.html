@@ -375,9 +375,7 @@
             }
         }
 
-        // Try playing immediately on load
         window.addEventListener('load', startMusic);
-        // Also unlock on first click/touch anywhere on page
         window.addEventListener('pointerdown', startMusic, { once: true });
 
         musicToggleBtn.addEventListener('click', () => {
@@ -397,7 +395,7 @@
             }
         });
 
-        // Game Configuration & Map Layout
+        // Game Configuration & Map Layout (Blocked wall tile removed below lower-middle data point)
         const TILE_SIZE = 64;
         const map = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -409,7 +407,7 @@
             [1,0,0,0,0,0,0,0,0,0,1,0,1,1,1,1,1,1,0,1],
             [1,1,1,1,0,0,1,1,1,0,1,0,1,0,1,2,2,1,0,1],
             [1,0,0,0,0,0,1,0,1,0,0,0,1,0,1,2,2,1,0,1],
-            [1,0,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1],
+            [1,0,1,1,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
             [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
