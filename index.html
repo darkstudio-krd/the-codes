@@ -549,10 +549,8 @@
             const screenCenterY = canvas.height / 2;
 
             ctx.save();
-            // Camera follow player with proper centering
-            ctx.translate(screenCenterX, screenCenterY);
-            ctx.rotate(-player.angle - Math.PI / 2);
-            ctx.translate(-player.x, -player.y);
+            // Corrected Camera Translation (No world rotation, keeping grid straight and natural)
+            ctx.translate(screenCenterX - player.x, screenCenterY - player.y);
 
             // 1. Draw Facility Floor & Walls
             for (let r = 0; r < rows; r++) {
@@ -605,7 +603,7 @@
                 }
             });
 
-            // 3. Draw Player
+            // 3. Draw Player Operative Rotated Towards Mouse
             ctx.save();
             ctx.translate(player.x, player.y);
             ctx.rotate(player.angle + Math.PI / 2);
@@ -621,7 +619,7 @@
 
             ctx.restore(); // Restore camera matrix
 
-            // 4. Fog of War & Flashlight Lighting Overlay
+            // 4. Fog of War & Flashlight Lighting Overlay (Centered on Screen)
             ctx.save();
             ctx.fillStyle = 'rgba(2, 2, 5, 0.96)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -637,7 +635,7 @@
             ctx.arc(screenCenterX, screenCenterY, 400, 0, Math.PI * 2);
             ctx.fill();
 
-            // Flashlight Beam Cone
+            // Flashlight Beam Cone pointing toward aim angle
             ctx.beginPath();
             ctx.moveTo(screenCenterX, screenCenterY);
             ctx.arc(screenCenterX, screenCenterY, 500, player.angle - 0.5, player.angle + 0.5);
