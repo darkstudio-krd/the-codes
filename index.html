@@ -379,18 +379,18 @@
             }
         });
 
-        // Game Configuration & Map Layout
+        // Game Configuration & Map Layout (Blocked rooms cleared out near data points)
         const TILE_SIZE = 64;
         const map = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,1,2,2,2,1,0,0,0,0,0,1,0,0,0,0,1],
-            [1,0,1,0,1,2,2,2,1,0,1,1,1,0,1,0,1,1,0,1],
+            [1,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1],
+            [1,0,1,0,1,0,0,0,1,0,1,1,1,0,1,0,1,1,0,1],
             [1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,0,1,0,0,1],
             [1,0,1,0,0,0,0,0,0,0,1,1,1,0,1,0,1,1,0,1],
             [1,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1],
             [1,0,0,0,0,0,0,0,0,0,1,0,1,1,1,1,1,1,0,1],
-            [1,1,1,1,2,2,1,1,1,0,1,0,1,0,1,2,2,1,0,1],
-            [1,0,0,0,2,2,1,0,1,0,0,0,1,0,1,2,2,1,0,1],
+            [1,1,1,1,0,0,1,1,1,0,1,0,1,0,1,2,2,1,0,1],
+            [1,0,0,0,0,0,1,0,1,0,0,0,1,0,1,2,2,1,0,1],
             [1,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1],
             [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
@@ -417,7 +417,7 @@
             battery: 100
         };
 
-        // All 4 code fragments placed securely in open, reachable hallways (tile 0)
+        // All 4 code fragments placed securely in open, reachable hallways
         const codeFragments = [
             { id: 0, x: TILE_SIZE * 11.5, y: TILE_SIZE * 3.5, digit: '1', collected: false },
             { id: 1, x: TILE_SIZE * 13.5, y: TILE_SIZE * 7.5, digit: '3', collected: false },
@@ -622,4 +622,4 @@
         requestAnimationFrame(loop);
     </script>
 </body>
-</html>
+</html>\
