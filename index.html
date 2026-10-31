@@ -28,8 +28,7 @@
         }
         canvas {
             display: block;
-            background: #020204;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+            background: #08090e;
         }
         /* HUD Overlays */
         .hud-panel {
@@ -193,7 +192,7 @@
             position: absolute;
             bottom: 25px;
             right: 25px;
-            display: none; /* Enabled via JS on touch devices */
+            display: none;
             grid-template-columns: 60px 60px 60px;
             grid-template-rows: 60px 60px;
             gap: 8px;
@@ -307,10 +306,10 @@
         // Translations Dictionary
         const translations = {
             en: { directive: "SECURITY DIRECTIVE", objective: "Search facility for 4 Keycode Digits", vitality: "VITALITY", battery: "FLASHLIGHT BATTERY", popupTitle: "EXTRACTION CODE SECURED", popupDesc: "All 4 security keycode fragments acquired. Extraction sequence authorized.", closeBtn: "CLOSE GAME" },
-            ku: { directive: "فەرمانی ئاسایش", .objective: "گەڕان بە دوای ٤ ژمارەی کلیلدا", vitality: "تەندروستی", battery: "پاتری ڕووناکی", popupTitle: "کۆدی دەرهێنان بەدەستهات", popupDesc: "هەموو پارچەکان کۆکرانەوە. مۆڵەتی دەرچوون درا.", closeBtn: "داخستنی یاری" },
+            ku: { directive: "فەرمانی ئاسایش", objective: "گەڕان بە دوای ٤ ژمارەی کلیلدا", vitality: "تەندروستی", battery: "پاتری ڕووناکی", popupTitle: "کۆدی دەرهێنان بەدەستهات", popupDesc: "هەموو پارچەکان کۆکرانەوە. مۆڵەتی دەرچوون درا.", closeBtn: "داخستنی یاری" },
             ar: { directive: "توجيه الأمان", objective: "ابحث في المنشأة عن 4 أرقام مشفرة", vitality: "الحيويّة", battery: "بطارية المصباح", popupTitle: "تم تأمين رمز الاستخراج", popupDesc: "تم الحصول على الأجزاء الأربعة. ترخيص تسلسل الاستخراج.", closeBtn: "إغلاق اللعبة" },
             ru: { directive: "ДИРЕКТИВА БЕЗОПАСНОСТИ", objective: "Найдите 4 цифры код-пароля", vitality: "ЖИЗНЕННЫЕ СИЛЫ", battery: "ЗАРЯД ФОНАРЯ", popupTitle: "КОД ЭВАКУАЦИИ ПОЛУЧЕН", popupDesc: "Все 4 фрагмента кода собраны. Эвакуация разрешена.", closeBtn: "ЗАКРЫТЬ ИГРУ" },
-            de: { directive: "SICHERHEITSRICHTLINIE", objective: "Durchsuche Einrichtung nach 4 Ziffern", vitality: " VITALITÄT", battery: "TASCHENLAMPEN-BATTERIE", popupTitle: "EXTRAKTIONSCODE GESICHERT", popupDesc: "Alle 4 Code-Fragmente gesichert. Extraktion autorisiert.", closeBtn: "SPIEL SCHLIESSEN" },
+            de: { directive: "SICHERHEITSRICHTLINIE", objective: "Durchsuche Einrichtung nach 4 Ziffern", vitality: "VITALITÄT", battery: "TASCHENLAMPEN-BATTERIE", popupTitle: "EXTRAKTIONSCODE GESICHERT", popupDesc: "Alle 4 Code-Fragmente gesichert. Extraktion autorisiert.", closeBtn: "SPIEL SCHLIESSEN" },
             fr: { directive: "DIRECTIVE DE SÉCURITÉ", objective: "Chercher 4 chiffres de code", vitality: "VITALITÉ", battery: "BATTERIE LAMPE", popupTitle: "CODE D'EXTRACTION SÉCURISÉ", popupDesc: "Les 4 fragments de code acquis. Extraction autorisée.", closeBtn: "FERMER LE JEU" },
             es: { directive: "DIRECTIVA DE SEGURIDAD", objective: "Busca 4 dígitos de código en las instalaciones", vitality: "VITALIDAD", battery: "BATERÍA DE LINTERNA", popupTitle: "CÓDIGO DE EXTRACCIÓN ASEGURADO", popupDesc: "Los 4 fragmentos de código adquiridos. Extracción autorizada.", closeBtn: "CERRAR JUEGO" }
         };
@@ -347,8 +346,8 @@
                 const gain = audioCtx.createGain();
 
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, now); // D5
-                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+                osc.frequency.setValueAtTime(587.33, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
 
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
@@ -380,7 +379,7 @@
             }
         });
 
-        // Game Configuration & Map Layout (0 = Floor, 1 = Wall, 2 = Blocked [X] Room, 3 = Code Item)
+        // Game Configuration & Map Layout
         const TILE_SIZE = 64;
         const map = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -418,7 +417,6 @@
             battery: 100
         };
 
-        // Keycode Items Setup (Target code: 1, 3, 2, 2 -> Digits placed across map)
         const codeFragments = [
             { id: 0, x: TILE_SIZE * 11.5, y: TILE_SIZE * 3.5, digit: '1', collected: false },
             { id: 1, x: TILE_SIZE * 13.5, y: TILE_SIZE * 7.5, digit: '3', collected: false },
@@ -431,7 +429,6 @@
         let collectedCount = 0;
         let gameCompleted = false;
 
-        // Input Tracking
         const keys = { w: false, a: false, s: false, d: false };
         const touchState = { up: false, down: false, left: false, right: false };
 
@@ -449,7 +446,6 @@
             if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.d = false;
         });
 
-        // Touch Control Bindings
         function bindTouchButton(id, stateKey) {
             const btn = document.getElementById(id);
             if (!btn) return;
@@ -463,15 +459,13 @@
         bindTouchButton('btnLeft', 'left');
         bindTouchButton('btnRight', 'right');
 
-        // Mouse Aiming
-        let mouseX = canvas.width / 2;
-        let mouseY = canvas.height / 2;
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
         window.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
         });
 
-        // Collision Helper
         function checkCollision(x, y) {
             const checkRadius = 10;
             const corners = [
@@ -485,7 +479,7 @@
                 const mapX = Math.floor(c.x / TILE_SIZE);
                 const mapY = Math.floor(c.y / TILE_SIZE);
                 if (mapY < 0 || mapY >= rows || mapX < 0 || mapX >= cols) return true;
-                if (map[mapY][mapX] > 0) return true; // Walls (1) and blocked rooms (2)
+                if (map[mapY][mapX] > 0) return true;
             }
             return false;
         }
@@ -494,7 +488,6 @@
             codePopup.classList.remove('active');
         });
 
-        // Main Game Loop
         function update() {
             if (gameCompleted) return;
 
@@ -505,27 +498,22 @@
             if (keys.a || touchState.left) dx -= player.speed;
             if (keys.d || touchState.right) dx += player.speed;
 
-            // Diagonal normalization
             if (dx !== 0 && dy !== 0) {
                 dx *= 0.7071;
                 dy *= 0.7071;
             }
 
-            // Move X with collision
             if (!checkCollision(player.x + dx, player.y)) {
                 player.x += dx;
             }
-            // Move Y with collision
             if (!checkCollision(player.x, player.y + dy)) {
                 player.y += dy;
             }
 
-            // Aim angle towards mouse
             const screenCenterX = canvas.width / 2;
             const screenCenterY = canvas.height / 2;
             player.angle = Math.atan2(mouseY - screenCenterY, mouseX - screenCenterX);
 
-            // Auto-pickup code fragments
             codeFragments.forEach(frag => {
                 if (!frag.collected) {
                     const dist = Math.hypot(player.x - frag.x, player.y - frag.y);
@@ -535,7 +523,6 @@
                         collectedCount++;
                         playCodeChime();
 
-                        // Update HUD Slot
                         const slotEl = document.getElementById(`slot${collectedCount - 1}`);
                         if (slotEl) {
                             slotEl.innerText = frag.digit;
@@ -543,7 +530,6 @@
                         }
                         updateObjectiveText();
 
-                        // Check Victory Condition
                         if (collectedCount >= 4) {
                             gameCompleted = true;
                             setTimeout(() => {
@@ -559,10 +545,11 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.save();
-            // Camera follow player
             const screenCenterX = canvas.width / 2;
             const screenCenterY = canvas.height / 2;
+
+            ctx.save();
+            // Camera follow player with proper centering
             ctx.translate(screenCenterX, screenCenterY);
             ctx.rotate(-player.angle - Math.PI / 2);
             ctx.translate(-player.x, -player.y);
@@ -575,20 +562,17 @@
                     const y = r * TILE_SIZE;
 
                     if (tile === 0) {
-                        // Concrete floor
                         ctx.fillStyle = '#111318';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
                         ctx.strokeStyle = '#1b1f28';
                         ctx.lineWidth = 1;
                         ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
                     } else if (tile === 1) {
-                        // Reinforced Wall
                         ctx.fillStyle = '#1f2430';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
                         ctx.fillStyle = '#12151c';
                         ctx.fillRect(x + 4, y + 4, TILE_SIZE - 8, TILE_SIZE - 8);
                     } else if (tile === 2) {
-                        // Blocked Room [X]
                         ctx.fillStyle = '#261214';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
                         ctx.strokeStyle = '#ff3333';
@@ -602,7 +586,7 @@
                 }
             }
 
-            // 2. Draw Code Fragments on Floor
+            // 2. Draw Code Fragments
             codeFragments.forEach(frag => {
                 if (!frag.collected) {
                     ctx.save();
@@ -612,16 +596,16 @@
                     ctx.beginPath();
                     ctx.arc(frag.x, frag.y, 10, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = '#000';
+                    ctx.fillStyle = '#fff';
                     ctx.font = 'bold 12px Courier New';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('?Data', frag.x, frag.y - 18);
+                    ctx.fillText('[DATA]', frag.x, frag.y - 18);
                     ctx.restore();
                 }
             });
 
-            // 3. Draw Player Operative
+            // 3. Draw Player
             ctx.save();
             ctx.translate(player.x, player.y);
             ctx.rotate(player.angle + Math.PI / 2);
@@ -631,34 +615,32 @@
             ctx.beginPath();
             ctx.arc(0, 0, 12, 0, Math.PI * 2);
             ctx.fill();
-            // Shoulder pads / tactical gear
             ctx.fillStyle = '#222';
             ctx.fillRect(-10, -6, 20, 6);
             ctx.restore();
 
             ctx.restore(); // Restore camera matrix
 
-            // 4. Pitch Black Fog of War & Flashlight Cone Effect
+            // 4. Fog of War & Flashlight Lighting Overlay
             ctx.save();
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = 'rgba(2, 2, 5, 0.95)';
+            ctx.fillStyle = 'rgba(2, 2, 5, 0.96)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.globalCompositeOperation = 'destination-out';
-            const gradient = ctx.createRadialGradient(screenCenterX, screenCenterY, 30, screenCenterX, screenCenterY, 350);
+            const gradient = ctx.createRadialGradient(screenCenterX, screenCenterY, 40, screenCenterX, screenCenterY, 400);
             gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-            gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.9)');
+            gradient.addColorStop(0.6, 'rgba(0, 0, 0, 0.85)');
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(screenCenterX, screenCenterY, 350, 0, Math.PI * 2);
+            ctx.arc(screenCenterX, screenCenterY, 400, 0, Math.PI * 2);
             ctx.fill();
 
             // Flashlight Beam Cone
             ctx.beginPath();
             ctx.moveTo(screenCenterX, screenCenterY);
-            ctx.arc(screenCenterX, screenCenterY, 450, player.angle - 0.45, player.angle + 0.45);
+            ctx.arc(screenCenterX, screenCenterY, 500, player.angle - 0.5, player.angle + 0.5);
             ctx.lineTo(screenCenterX, screenCenterY);
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';
             ctx.fill();
