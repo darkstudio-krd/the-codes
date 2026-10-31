@@ -28,7 +28,7 @@
         }
         canvas {
             display: block;
-            background: #08090e;
+            background: #12151f;
         }
         /* HUD Overlays */
         .hud-panel {
@@ -549,10 +549,9 @@
             const screenCenterY = canvas.height / 2;
 
             ctx.save();
-            // Corrected Camera Translation (No world rotation, keeping grid straight and natural)
             ctx.translate(screenCenterX - player.x, screenCenterY - player.y);
 
-            // 1. Draw Facility Floor & Walls
+            // 1. Draw Facility Floor & Walls (Brighter textures)
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     const tile = map[r][c];
@@ -560,20 +559,20 @@
                     const y = r * TILE_SIZE;
 
                     if (tile === 0) {
-                        ctx.fillStyle = '#111318';
+                        ctx.fillStyle = '#1c202d';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        ctx.strokeStyle = '#1b1f28';
+                        ctx.strokeStyle = '#282f42';
                         ctx.lineWidth = 1;
                         ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
                     } else if (tile === 1) {
-                        ctx.fillStyle = '#1f2430';
+                        ctx.fillStyle = '#323b52';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        ctx.fillStyle = '#12151c';
+                        ctx.fillStyle = '#212736';
                         ctx.fillRect(x + 4, y + 4, TILE_SIZE - 8, TILE_SIZE - 8);
                     } else if (tile === 2) {
-                        ctx.fillStyle = '#261214';
+                        ctx.fillStyle = '#381c20';
                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        ctx.strokeStyle = '#ff3333';
+                        ctx.strokeStyle = '#ff4444';
                         ctx.lineWidth = 2;
                         ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
                         ctx.beginPath();
@@ -589,56 +588,56 @@
                 if (!frag.collected) {
                     ctx.save();
                     ctx.shadowColor = '#00ffcc';
-                    ctx.shadowBlur = 12;
+                    ctx.shadowBlur = 15;
                     ctx.fillStyle = '#00ffcc';
                     ctx.beginPath();
-                    ctx.arc(frag.x, frag.y, 10, 0, Math.PI * 2);
+                    ctx.arc(frag.x, frag.y, 12, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 12px Courier New';
+                    ctx.font = 'bold 13px Courier New';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('[DATA]', frag.x, frag.y - 18);
+                    ctx.fillText('[DATA]', frag.x, frag.y - 20);
                     ctx.restore();
                 }
             });
 
-            // 3. Draw Player Operative Rotated Towards Mouse
+            // 3. Draw Player Operative
             ctx.save();
             ctx.translate(player.x, player.y);
             ctx.rotate(player.angle + Math.PI / 2);
             ctx.fillStyle = '#00ffcc';
             ctx.shadowColor = '#00ffcc';
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = 12;
             ctx.beginPath();
-            ctx.arc(0, 0, 12, 0, Math.PI * 2);
+            ctx.arc(0, 0, 14, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = '#222';
+            ctx.fillStyle = '#333';
             ctx.fillRect(-10, -6, 20, 6);
             ctx.restore();
 
             ctx.restore(); // Restore camera matrix
 
-            // 4. Fog of War & Flashlight Lighting Overlay (Centered on Screen)
+            // 4. Much Brighter Lighting & Wider Flashlight Cone
             ctx.save();
-            ctx.fillStyle = 'rgba(2, 2, 5, 0.96)';
+            ctx.fillStyle = 'rgba(2, 2, 5, 0.7)'; // Much lighter darkness overlay
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.globalCompositeOperation = 'destination-out';
-            const gradient = ctx.createRadialGradient(screenCenterX, screenCenterY, 40, screenCenterX, screenCenterY, 400);
+            const gradient = ctx.createRadialGradient(screenCenterX, screenCenterY, 80, screenCenterX, screenCenterY, 600);
             gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-            gradient.addColorStop(0.6, 'rgba(0, 0, 0, 0.85)');
+            gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.7)');
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(screenCenterX, screenCenterY, 400, 0, Math.PI * 2);
+            ctx.arc(screenCenterX, screenCenterY, 600, 0, Math.PI * 2);
             ctx.fill();
 
-            // Flashlight Beam Cone pointing toward aim angle
+            // Wide Flashlight Beam Cone
             ctx.beginPath();
             ctx.moveTo(screenCenterX, screenCenterY);
-            ctx.arc(screenCenterX, screenCenterY, 500, player.angle - 0.5, player.angle + 0.5);
+            ctx.arc(screenCenterX, screenCenterY, 700, player.angle - 0.7, player.angle + 0.7);
             ctx.lineTo(screenCenterX, screenCenterY);
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';
             ctx.fill();
